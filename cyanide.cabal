@@ -1,0 +1,54 @@
+name:                cyanide
+version:             0.1.0.0
+-- synopsis:
+-- description:
+homepage:            https://github.com/dgonyeo/cyanide#readme
+license:             GPLv3
+license-file:        LICENSE
+author:              Derek Gonyeo
+maintainer:          derek@gonyeo.com
+copyright:           Apache 2.0
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  README.md
+
+executable cyanide
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  ghc-options:         -threaded
+  other-modules:       Cyanide.Data.Types
+                     , Cyanide.Data.Postgres
+                     , Cyanide.Data.Glasses
+                     , Cyanide.Data.Purchases
+                     , Cyanide.Data.Recipes
+                     , Cyanide.Data.Ingredients
+                     , Cyanide.Data.IngredientClasses
+                     , Cyanide.UI.App
+                     , Cyanide.UI.State
+                     , Cyanide.UI.GlassSelectionScreen
+                     , Cyanide.UI.GlassDeletionScreen
+                     , Cyanide.UI.GlassCreationScreen
+                     , Cyanide.UI.RecipeSelectionScreen
+                     , Cyanide.UI.RecipeDetailScreen
+                     , Cyanide.UI.IngredientSelectionScreen
+                     , Cyanide.UI.IngredientDetailScreen
+                     , Cyanide.UI.PurchaseDeletionScreen
+                     , Cyanide.UI.PurchaseCreationScreen
+                     , Cyanide.UI.Util
+                     , Cyanide.UI.MainSelectionScreen
+                     , Cyanide.UI.IngredientClassSelectionScreen
+                     , Cyanide.UI.IngredientClassDeletionScreen
+                     , Cyanide.UI.IngredientClassCreationScreen
+  build-depends:       base              >=4.7   && <5
+                     , brick             >=0.29  && <0.30
+                     , postgresql-simple >=0.5   && <0.6
+                     , either            >=4.5   && <4.6
+                     , transformers      >=0.5   && <0.6
+                     , text              >=1.2   && <1.3
+                     , brick             >=0.29  && <0.30
+                     , time              >=1.8   && <1.9
+                     , vty               >=5.19  && <6.0
+                     , vector            >=0.12  && <0.13
+                     , microlens         >=0.4   && <0.5
