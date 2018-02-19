@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Cyanide.UI.IngredientClassCreationScreen where
+module Cyanide.UI.IngredientClassInputScreen where
 
 import Lens.Micro ((^.))
 import qualified Brick as B
@@ -24,7 +24,7 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (IngredientClassCreationScreen ed l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn (IngredientClassInputScreen ed mic l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
             B.continue $ CyanideState conn (IngredientClassSelectionScreen l)
@@ -36,26 +36,37 @@ handleEvent s@(CyanideState conn (IngredientClassCreationScreen ed l)) (B.VtyEve
                 else do
                     glasses <- liftIO $ IngredientClasses.getIngredientClasses conn
                     let newIngredientClassName = newIngredientClassNames !! 0
-                    case filter (\(Types.IngredientClass _ n) -> n == newIngredientClassName) glasses of
-                        [] -> do
+                    case (mic,filter (\(Types.IngredientClass _ n) -> n == newIngredientClassName) glasses) of
+                        (Just (Types.IngredientClass i _),[]) -> do
+                            newIngredientClass <- liftIO $ IngredientClasses.updateIngredientClass conn i newIngredientClassName
+                            let newList = BL.listModify (\_ -> newIngredientClass) l
+                            B.continue $ CyanideState conn (IngredientClassSelectionScreen newList)
+                        (Nothing,[]) -> do
                             newIngredientClass <- liftIO $ IngredientClasses.newIngredientClass conn newIngredientClassName
                             let newList = BL.listInsert (length l) newIngredientClass l
                             B.continue $ CyanideState conn (IngredientClassSelectionScreen newList)
 
         ev -> do
             newEdit <- BE.handleEditorEvent e ed
-            B.continue $ CyanideState conn (IngredientClassCreationScreen newEdit l)
+            B.continue $ CyanideState conn (IngredientClassInputScreen newEdit mic l)
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (IngredientClassCreationScreen e l)) = [ui]
-    where Just (_,(Types.IngredientClass _ n)) = BL.listSelectedElement l
+drawUI (CyanideState conn (IngredientClassInputScreen e mic l)) = [ui]
+    where prompt = case mic of
+                    Just (Types.IngredientClass _ n) -> "What do you want to rename \"" `T.append` n `T.append` "\" to?"
+                    Nothing -> "What ingredient class do you want to create?"
+
+          enterAction = case mic of
+                            Just _ -> "Modify"
+                            Nothing -> "Create"
+
           ui = BC.center
                $ B.hLimit 80
                $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txt $ "What ingredient class do you want to create?"
+                            [ BC.hCenter $ B.txt prompt
                             , BC.hCenter $ B.hLimit 24 $ B.padAll 1 $ BB.border $ BE.renderEditor drawEdit True e
-                            , renderInstructions [ ("Enter","Create")
+                            , renderInstructions [ ("Enter",enterAction)
                                                  , ("Esc","Previous screen")
                                                  ]
                             ]

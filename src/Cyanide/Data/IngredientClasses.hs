@@ -23,6 +23,11 @@ newIngredientClass conn className = do
     [P.Only i] <- P.query conn "INSERT INTO ingredient_classes (name) VALUES (?) RETURNING (id)" (P.Only className)
     return $ IngredientClass i className
 
+updateIngredientClass :: DBConn -> Int -> T.Text -> IO IngredientClass
+updateIngredientClass conn id className = do
+    P.execute conn "UPDATE ingredient_classes SET name = ? WHERE id = ?" (className,id)
+    return $ IngredientClass id className
+
 deleteIngredientClass :: DBConn -> IngredientClass -> IO ()
 deleteIngredientClass conn (IngredientClass i _) = do
     P.execute conn "DELETE FROM ingredient_classes WHERE id = ?" (P.Only i)

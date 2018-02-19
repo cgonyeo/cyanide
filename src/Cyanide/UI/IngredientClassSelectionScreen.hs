@@ -33,7 +33,11 @@ handleEvent s@(CyanideState conn (IngredientClassSelectionScreen l)) (B.VtyEvent
             B.continue $ CyanideState conn (IngredientClassDeletionScreen l)
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn (IngredientClassCreationScreen (BE.editorText "IngredientClassCreationScreen" (Just 1) "") l)
+            B.continue $ CyanideState conn (IngredientClassInputScreen (BE.editorText "IngredientClassCreationScreen" (Just 1) "") Nothing l)
+
+        Vty.EvKey (Vty.KChar 'e') [] ->
+            let (Just (_, ic@(Types.IngredientClass _ n))) = BL.listSelectedElement l
+            in B.continue $ CyanideState conn (IngredientClassInputScreen (BE.editorText "IngredientClassModificationScreen" (Just 1) n) (Just ic) l)
 
         ev -> do
             newList <- BL.handleListEventVi BL.handleListEvent ev l
@@ -49,6 +53,7 @@ drawUI (CyanideState conn (IngredientClassSelectionScreen l)) = [ui]
                $ B.vLimit 25 $ B.vBox
                             [ BC.hCenter box
                             , renderInstructions [ ("n","New ingredient class")
+                                                 , ("e","Edit ingredient class")
                                                  , ("d","Delete ingredient class")
                                                  , ("Esc","Previous screen")
                                                  ]

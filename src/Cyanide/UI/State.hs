@@ -83,7 +83,8 @@ data CyanideScreen
     | IngredientClassDeletionScreen
         { ingredientClassDeletionList :: BL.List Name Types.IngredientClass
         }
-    | IngredientClassCreationScreen
+    | IngredientClassInputScreen
         { ingredientClassCreationName           :: BE.Editor T.Text Name
+        , ingredientClassBeingEdited            :: Maybe Types.IngredientClass
         , ingredientClassCreationPreviousScreen :: BL.List Name Types.IngredientClass
         }

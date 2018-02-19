@@ -43,7 +43,7 @@ executable cyanide
                      , Cyanide.UI.MainSelectionScreen
                      , Cyanide.UI.IngredientClassSelectionScreen
                      , Cyanide.UI.IngredientClassDeletionScreen
-                     , Cyanide.UI.IngredientClassCreationScreen
+                     , Cyanide.UI.IngredientClassInputScreen
   build-depends:       base              >=4.7   && <5
                      , brick             >=0.29  && <0.30
                      , postgresql-simple >=0.5   && <0.6

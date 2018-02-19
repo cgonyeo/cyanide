@@ -26,7 +26,7 @@ import qualified Cyanide.UI.PurchaseDeletionScreen as PurchaseDeletionScreen
 import qualified Cyanide.UI.PurchaseCreationScreen as PurchaseCreationScreen
 import qualified Cyanide.UI.IngredientClassSelectionScreen as IngredientClassSelectionScreen
 import qualified Cyanide.UI.IngredientClassDeletionScreen as IngredientClassDeletionScreen
-import qualified Cyanide.UI.IngredientClassCreationScreen as IngredientClassCreationScreen
+import qualified Cyanide.UI.IngredientClassInputScreen as IngredientClassInputScreen
 
 run :: Postgres.DBConn -> IO ()
 run conn = do
@@ -60,7 +60,7 @@ attrMap = B.attrMap Vty.defAttr
    ++ PurchaseCreationScreen.attrMap
    ++ IngredientClassSelectionScreen.attrMap
    ++ IngredientClassDeletionScreen.attrMap
-   ++ IngredientClassCreationScreen.attrMap
+   ++ IngredientClassInputScreen.attrMap
     )
 
 -- Handling events
@@ -92,8 +92,8 @@ handleEvent s@(CyanideState _ (IngredientClassSelectionScreen _)) e =
     IngredientClassSelectionScreen.handleEvent s e
 handleEvent s@(CyanideState _ (IngredientClassDeletionScreen _)) e =
     IngredientClassDeletionScreen.handleEvent s e
-handleEvent s@(CyanideState _ (IngredientClassCreationScreen _ _)) e =
-    IngredientClassCreationScreen.handleEvent s e
+handleEvent s@(CyanideState _ (IngredientClassInputScreen _ _ _)) e =
+    IngredientClassInputScreen.handleEvent s e
 
 -- Drawing
 
@@ -124,5 +124,5 @@ drawUI s@(CyanideState _ (IngredientClassSelectionScreen _)) =
     IngredientClassSelectionScreen.drawUI s
 drawUI s@(CyanideState _ (IngredientClassDeletionScreen _)) =
     IngredientClassDeletionScreen.drawUI s
-drawUI s@(CyanideState _ (IngredientClassCreationScreen _ _)) =
-    IngredientClassCreationScreen.drawUI s
+drawUI s@(CyanideState _ (IngredientClassInputScreen _ _ _)) =
+    IngredientClassInputScreen.drawUI s
