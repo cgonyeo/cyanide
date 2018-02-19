@@ -33,17 +33,24 @@ will run without issue on MacOS or Windows.
 
 Cyanide requires access to a working PostgreSQL database, as that's how it
 stores information. Database credentials are stored at
-`~/.config/cyanide/cyanide.conf` in the following format:
+`~/.config/cyanide/cyanide.conf`. If this file doesn't exist when cyanide is
+run, cyanide will ask the user if cyanide should create the file with the
+following contents:
 
 ```
-TODO
+[DATABASE]
+host = localhost
+port = 5432
+user = cyanide
+password = cyanide
+database = cyanide
 ```
 
 If cyanide has not been run before, the database needs to be manually
 initialized. This can be done with the `init_db.sql` file:
 
 ```
-curl -o init_cyanide_db.sql https://github.com/dgonyeo/cyanide/...
+curl -o init_cyanide_db.sql https://raw.githubusercontent.com/dgonyeo/cyanide/master/init_db.sql
 psql -U DB_USER [MAYBE OTHER OPTIONS] -f init_db.sql
 ```
 
@@ -51,10 +58,6 @@ Cyanide will hopefully soon handle the database initialization step itself.
 
 Running concurrent copies of cyanide is not recommended. It could be fine, but
 if data is being modified the changes may not appear across all instances.
-
-### Running cyanide on boot
-
-TODO
 
 ## License
 

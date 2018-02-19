@@ -3,18 +3,12 @@
 
 module Cyanide.Data.Postgres where
 
+import Data.Word
+import qualified Data.Text as T
 import Database.PostgreSQL.Simple as P
 
 type DBConn = P.Connection
 
-connectionSettings :: P.ConnectInfo
-connectionSettings = P.ConnectInfo
-    { connectHost     = "localhost"
-    , connectPort     = 5432
-    , connectUser     = "cyanide"
-    , connectPassword = "up spirits"
-    , connectDatabase = "cyanide"
-    }
-
-newDBConn :: IO DBConn
-newDBConn = P.connect connectionSettings
+newDBConn :: T.Text -> Word16 -> T.Text -> T.Text -> T.Text -> IO DBConn
+newDBConn h po u pa d = P.connect (P.ConnectInfo (t h) po (t u) (t pa) (t d))
+    where t = T.unpack
