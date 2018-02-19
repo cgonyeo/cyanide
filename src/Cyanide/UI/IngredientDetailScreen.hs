@@ -42,10 +42,6 @@ handleEvent s@(CyanideState conn scr@(IngredientDetailScreen i ps rs mr l f)) (B
             let newFocus = BF.focusNext f
             in B.continue $ CyanideState conn $ IngredientDetailScreen i ps rs mr l newFocus
 
-        Vty.EvKey Vty.KBackTab [] ->
-            let newFocus = BF.focusPrev f
-            in B.continue $ CyanideState conn $ IngredientDetailScreen i ps rs mr l newFocus
-
         Vty.EvKey (Vty.KChar 'p') [] ->
             adjustIngredientAmount (Types.amount i + 1)
 
@@ -141,6 +137,7 @@ drawUI (CyanideState conn (IngredientDetailScreen ing pl rl mr _ f)) = [ui]
                             then [ addRow ingredientInfoLabelSize "Avg Cost" [formatMoney avgCost ] ]
                             else [ ]
     
+          -- TODO: alternate UI for ingredients not used in recipes
           ui = BC.center
             $ B.hLimit 80
             $ B.vLimit 25 $ B.vBox $ 

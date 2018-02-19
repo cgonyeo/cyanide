@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Cyanide.UI.State where
 
 import qualified Data.Text as T
@@ -27,6 +29,14 @@ data CyanideScreen
         }
     | IngredientSelectionScreen
         { ingredientSelectionList :: BL.List Name Types.Ingredient
+        }
+    | IngredientCreationScreen
+        { ingredientCreationName           :: BE.Editor T.Text Name
+        , ingredientCreationClass          :: BL.List Name Types.IngredientClass
+        , ingredientCreationUnit           :: BL.List Name T.Text
+        , ingredientCreationFocusRing      :: BF.FocusRing Name
+        , ingredientCreationNotForRecipes  :: Bool
+        , ingredientCreationPreviousScreen :: BL.List Name Types.Ingredient
         }
     | IngredientDetailScreen
         { ingredient                     :: Types.Ingredient

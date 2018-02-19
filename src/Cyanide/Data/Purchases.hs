@@ -10,7 +10,7 @@ import Cyanide.Data.Postgres
 import Data.Time.Calendar
 
 getPurchasesForIngredient :: DBConn -> Ingredient -> IO [Purchase]
-getPurchasesForIngredient conn (Ingredient i _ _ _ _)=
+getPurchasesForIngredient conn (Ingredient i _ _ _ _ _)=
     P.query conn  "SELECT purchases.date      \
                  \      , purchases.location  \
                  \      , purchases.price     \
@@ -19,7 +19,7 @@ getPurchasesForIngredient conn (Ingredient i _ _ _ _)=
                  \ ORDER BY purchases.date DESC" (P.Only i)
 
 newPurchase :: DBConn -> (Ingredient,Day,T.Text,Int) -> IO ()
-newPurchase conn ((Ingredient i _ _ _ _),d,l,p) = do
+newPurchase conn ((Ingredient i _ _ _ _ _),d,l,p) = do
     P.execute conn "INSERT INTO PURCHASES VALUES (?,?,?,?)" (i,d,l,p)
     return ()
 

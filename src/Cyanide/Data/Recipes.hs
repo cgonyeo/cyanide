@@ -38,7 +38,7 @@ getRecipesUsingIngredientClass conn c =
        \ ORDER BY recipes.id ASC" (P.Only c)
 
 getRecipesUsingIngredient :: DBConn -> Ingredient -> IO [Recipe]
-getRecipesUsingIngredient conn (Ingredient i _ _ _ _) =
+getRecipesUsingIngredient conn (Ingredient i _ _ _ _ _) =
     P.query conn 
         "SELECT recipes.id                      \
        \      , recipes.name                    \
@@ -50,7 +50,7 @@ getRecipesUsingIngredient conn (Ingredient i _ _ _ _) =
        \ ORDER BY recipes.id ASC" (P.Only i)
 
 getRecipeForIngredient :: DBConn -> Ingredient -> IO (Maybe Recipe)
-getRecipeForIngredient conn (Ingredient i _ _ _ _) = do
+getRecipeForIngredient conn (Ingredient i _ _ _ _ _) = do
     rs <- P.query conn 
         "SELECT recipes.id                      \
        \      , recipes.name                    \

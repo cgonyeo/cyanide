@@ -20,6 +20,7 @@ import qualified Cyanide.UI.GlassSelectionScreen as GlassSelectionScreen
 import qualified Cyanide.UI.GlassDeletionScreen as GlassDeletionScreen
 import qualified Cyanide.UI.GlassCreationScreen as GlassCreationScreen
 import qualified Cyanide.UI.IngredientSelectionScreen as IngredientSelectionScreen
+import qualified Cyanide.UI.IngredientCreationScreen as IngredientCreationScreen
 import qualified Cyanide.UI.IngredientDetailScreen as IngredientDetailScreen
 import qualified Cyanide.UI.PurchaseDeletionScreen as PurchaseDeletionScreen
 import qualified Cyanide.UI.PurchaseCreationScreen as PurchaseCreationScreen
@@ -53,6 +54,7 @@ attrMap = B.attrMap Vty.defAttr
    ++ GlassDeletionScreen.attrMap
    ++ GlassCreationScreen.attrMap
    ++ IngredientSelectionScreen.attrMap
+   ++ IngredientCreationScreen.attrMap
    ++ IngredientDetailScreen.attrMap
    ++ PurchaseDeletionScreen.attrMap
    ++ PurchaseCreationScreen.attrMap
@@ -78,6 +80,8 @@ handleEvent s@(CyanideState _ (RecipeDetailScreen _ _ _ _)) e =
     RecipeDetailScreen.handleEvent s e
 handleEvent s@(CyanideState _ (IngredientSelectionScreen _)) e =
     IngredientSelectionScreen.handleEvent s e
+handleEvent s@(CyanideState _ (IngredientCreationScreen _ _ _ _ _ _)) e =
+    IngredientCreationScreen.handleEvent s e
 handleEvent s@(CyanideState _ (IngredientDetailScreen _ _ _ _ _ _)) e =
     IngredientDetailScreen.handleEvent s e
 handleEvent s@(CyanideState _ (PurchaseDeletionScreen _ _ _ _ _ _)) e =
@@ -108,6 +112,8 @@ drawUI s@(CyanideState _ (RecipeDetailScreen _ _ _ _)) =
     RecipeDetailScreen.drawUI s
 drawUI s@(CyanideState _ (IngredientSelectionScreen _)) =
     IngredientSelectionScreen.drawUI s
+drawUI s@(CyanideState _ (IngredientCreationScreen _ _ _ _ _ _)) =
+    IngredientCreationScreen.drawUI s
 drawUI s@(CyanideState _ (IngredientDetailScreen _ _ _ _ _ _)) =
     IngredientDetailScreen.drawUI s
 drawUI s@(CyanideState _ (PurchaseDeletionScreen _ _ _ _ _ _)) =

@@ -35,7 +35,7 @@ addPaddedRow maxTitleSize title contents =
 (+++) t1 t2 = t1 `T.append` " " `T.append` t2
                                                                       
 displayIng :: Either Types.Ingredient Types.IngredientClass -> T.Text
-displayIng (Left (Types.Ingredient _ n _ _ _)) = n
+displayIng (Left (Types.Ingredient _ n _ _ _ _)) = n
 displayIng (Right (Types.IngredientClass _ n)) = n
                                                                       
 formatIngr :: Types.IngredientListItem -> T.Text

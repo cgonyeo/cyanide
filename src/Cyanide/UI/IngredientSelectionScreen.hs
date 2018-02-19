@@ -17,11 +17,14 @@ import Control.Monad.IO.Class
 
 import Cyanide.UI.State
 import qualified Cyanide.UI.IngredientDetailScreen as IngredientDetail
+import qualified Cyanide.UI.IngredientCreationScreen as IngredientCreation
+import qualified Cyanide.Data.IngredientClasses as IngredientClasses
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Ingredients as Ingredients
 import qualified Cyanide.Data.Purchases as Purchases
 import qualified Cyanide.Data.Recipes as Recipes
 import qualified Cyanide.Data.Postgres as Postgres
+import qualified Cyanide.Data.Units as Units
 import Cyanide.UI.Util
 
 attrMap :: [(B.AttrName, Vty.Attr)]
@@ -50,8 +53,17 @@ handleEvent s@(CyanideState conn (IngredientSelectionScreen l)) (B.VtyEvent e) =
         --Vty.EvKey (Vty.KChar 'd') [] ->
         --    B.continue $ CyanideState conn (IngredientDeletionScreen l)
 
---        Vty.EvKey (Vty.KChar 'n') [] ->
---            B.continue $ CyanideState conn (IngredientCreationScreen (BE.editorText "IngredientCreationScreen" (Just 1) "") l)
+        Vty.EvKey (Vty.KChar 'n') [] -> do
+            ics <- liftIO $ IngredientClasses.getIngredientClasses conn
+
+            let ed = BE.editor IngredientCreation.editorName (Just 1) ""
+                iclist = BL.list IngredientCreation.classesName (V.fromList ics) 1
+                ulist = BL.list IngredientCreation.unitsName (V.fromList Units.ingredientUnits) 1
+                f = BF.focusRing [ IngredientCreation.editorName
+                                 , IngredientCreation.classesName
+                                 , IngredientCreation.unitsName
+                                 ]
+            B.continue $ CyanideState conn (IngredientCreationScreen ed iclist ulist f False l)
 
         ev -> do
             newList <- BL.handleListEventVi BL.handleListEvent ev l
@@ -73,10 +85,10 @@ drawUI (CyanideState conn (IngredientSelectionScreen l)) = [ui]
                             ]
 
 listDrawElement :: Bool -> Types.Ingredient -> B.Widget Name
-listDrawElement sel (Types.Ingredient _ n c a u) =
-    BC.hCenter $ B.hBox [ formatText JustifyLeft 24 n
-                        , formatText JustifyLeft 12 c
+listDrawElement sel (Types.Ingredient _ n c a u _) =
+    BC.hCenter $ B.hBox [ formatText JustifyLeft 38 n
+                        , formatText JustifyLeft 16 c
                         , formatText JustifyRight 3 (T.pack $ show a)
                         , B.txt " "
-                        , formatText JustifyLeft 12 u
+                        , formatText JustifyLeft 18 u
                         ]

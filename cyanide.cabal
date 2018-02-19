@@ -20,6 +20,7 @@ executable cyanide
   ghc-options:         -threaded
   other-modules:       Cyanide.Data.Types
                      , Cyanide.Config
+                     , Cyanide.Data.Units
                      , Cyanide.Data.Postgres
                      , Cyanide.Data.Glasses
                      , Cyanide.Data.Purchases
@@ -34,6 +35,7 @@ executable cyanide
                      , Cyanide.UI.RecipeSelectionScreen
                      , Cyanide.UI.RecipeDetailScreen
                      , Cyanide.UI.IngredientSelectionScreen
+                     , Cyanide.UI.IngredientCreationScreen
                      , Cyanide.UI.IngredientDetailScreen
                      , Cyanide.UI.PurchaseDeletionScreen
                      , Cyanide.UI.PurchaseCreationScreen

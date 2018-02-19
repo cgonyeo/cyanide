@@ -2,7 +2,7 @@ BEGIN;
 
 INSERT INTO glasses (name) VALUES ('coupe'), ('highball'), ('rocks');
 INSERT INTO ingredient_classes (name) VALUES ('gin'), ('bourbon'), ('clubsoda'), ('misc');
-INSERT INTO ingredients (class,name,amount,unit) VALUES (1,'botanivore',1,'Ml750'), (2,'bulleit',1,'Ml750'), (4,'hot buttered rum mix',1,'recipe');
+INSERT INTO ingredients (class,name,amount,unit,notForRecipes) VALUES (1,'botanivore',1,'Ml750',False), (2,'bulleit',1,'Ml750',False), (4,'hot buttered rum mix',1,'recipe',False), (2,'pappy',1,'Ml750',True);
 INSERT INTO recipes (name,instructions,for_ingredient_id) VALUES ('boozeland','make some booze',NULL);
 INSERT INTO recipes (name,instructions,for_ingredient_id) VALUES ('hot buttered rum mix','heat on stove to combine',3);
 INSERT INTO recipes_to_glasses (glass_id,recipe_id) VALUES (2,1);

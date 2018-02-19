@@ -34,6 +34,7 @@ data Ingredient = Ingredient
     , ingredientClass :: T.Text
     , amount          :: Int
     , unit            :: T.Text
+    , notForRecipes   :: Bool
     }
     deriving(Generic,Show)
 instance FromRow Ingredient

@@ -15,11 +15,12 @@ CREATE TABLE "ingredient_classes" (
 );
 
 CREATE TABLE "ingredients" (
-    id     SERIAL        NOT NULL,
-    class  INTEGER       NOT NULL,
-    name   VARCHAR(1024) NOT NULL,
-    amount INTEGER       NOT NULL,
-    unit   VARCHAR(1024) NOT NULL,
+    id            SERIAL        NOT NULL,
+    class         INTEGER       NOT NULL,
+    name          VARCHAR(1024) NOT NULL,
+    amount        INTEGER       NOT NULL,
+    unit          VARCHAR(1024) NOT NULL,
+    notForRecipes BOOLEAN       NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (class) REFERENCES "ingredient_classes" (id) ON DELETE CASCADE
 );

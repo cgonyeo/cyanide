@@ -55,4 +55,4 @@ drawUI (CyanideState conn (IngredientClassSelectionScreen l)) = [ui]
                             ]
 
 listDrawElement :: Bool -> Types.IngredientClass -> B.Widget Name
-listDrawElement sel (Types.IngredientClass _ n) = BC.hCenter $ B.str $ T.unpack n
+listDrawElement _ (Types.IngredientClass _ n) = BC.hCenter $ B.txt n

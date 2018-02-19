@@ -16,6 +16,7 @@ getIngredients conn = P.query_ conn
        \      , ingredient_classes.name               \
        \      , ingredients.amount                    \
        \      , ingredients.unit                      \
+       \      , ingredients.notForRecipes             \
        \ FROM ingredients                             \
        \ INNER JOIN ingredient_classes                \
        \ ON ingredients.class = ingredient_classes.id \
@@ -29,6 +30,7 @@ getIngredient conn ingredientId = do
        \      , ingredient_classes.name               \
        \      , ingredients.amount                    \
        \      , ingredients.unit                      \
+       \      , ingredients.notForRecipes             \
        \ FROM ingredients                             \
        \ INNER JOIN ingredient_classes                \
        \ ON ingredients.class = ingredient_classes.id \
@@ -36,17 +38,17 @@ getIngredient conn ingredientId = do
        \ ORDER BY ingredients.id ASC" (P.Only ingredientId)
     return i
 
-newIngredient :: DBConn -> (T.Text,IngredientClass) -> IO ()
-newIngredient conn (n,(IngredientClass i _)) = do
-    P.execute conn "INSERT INTO ingredients (class,name,amount,unit) VALUES (?,?,?,?)" (i,n,0 :: Int,show Zero)
-    return ()
+newIngredient :: DBConn -> (T.Text,IngredientClass,T.Text,Bool) -> IO Ingredient
+newIngredient conn (n,(IngredientClass ci c),u,s) = do
+    [P.Only i] <- P.query conn "INSERT INTO ingredients (name,class,amount,unit,notForRecipes) VALUES (?,?,?,?,?) RETURNING (id)" (n,ci,0 :: Int,u,s)
+    return $ Ingredient i n c 0 u s
 
 updateIngredientAmount :: DBConn -> (Ingredient,Int) -> IO ()
-updateIngredientAmount conn ((Ingredient i _ _ _ _),a) = do
+updateIngredientAmount conn ((Ingredient i _ _ _ _ _),a) = do
     P.execute conn "UPDATE ingredients SET amount = ? WHERE id = ?" (a,i)
     return ()
 
 deleteIngredient :: DBConn -> Ingredient -> IO ()
-deleteIngredient conn (Ingredient i _ _ _ _) = do
+deleteIngredient conn (Ingredient i _ _ _ _ _) = do
     P.execute conn "DELETE FROM ingredients WHERE id = ?" (P.Only i)
     return ()

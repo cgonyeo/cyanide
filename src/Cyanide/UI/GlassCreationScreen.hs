@@ -41,6 +41,7 @@ handleEvent s@(CyanideState conn (GlassCreationScreen ed l)) (B.VtyEvent e) =
                             newGlass <- liftIO $ Glasses.newGlass conn newGlassName
                             let newList = BL.listInsert (length l) newGlass l
                             B.continue $ CyanideState conn (GlassSelectionScreen newList)
+                        _ -> B.continue s
 
         ev -> do
             newEdit <- BE.handleEditorEvent e ed
@@ -49,8 +50,7 @@ handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn (GlassCreationScreen e l)) = [ui]
-    where Just (_,(Types.Glass _ n)) = BL.listSelectedElement l
-          ui = BC.center
+    where ui = BC.center
                $ B.hLimit 80
                $ B.vLimit 25 $ B.vBox
                             [ BC.hCenter $ B.txt $ "What glass do you want to create?"
