@@ -46,16 +46,6 @@ password = cyanide
 database = cyanide
 ```
 
-If cyanide has not been run before, the database needs to be manually
-initialized. This can be done with the `init_db.sql` file:
-
-```
-curl -o init_cyanide_db.sql https://raw.githubusercontent.com/dgonyeo/cyanide/master/init_db.sql
-psql -U DB_USER [MAYBE OTHER OPTIONS] -f init_db.sql
-```
-
-Cyanide will hopefully soon handle the database initialization step itself.
-
 Running concurrent copies of cyanide is not recommended. It could be fine, but
 if data is being modified the changes may not appear across all instances.
 

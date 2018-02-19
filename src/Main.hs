@@ -13,7 +13,9 @@ main = do
     config <- Config.getConfig
     case config of
         Left err -> do
-            hPutStrLn stdout err
+            hPutStrLn stderr err
             exitWith (ExitFailure 1)
         Right (Config.Config h po u pa d) -> do
-          App.run =<< Postgres.newDBConn h po u pa d
+            conn <- Postgres.newDBConn h po u pa d
+            Postgres.initDb conn
+            App.run conn
