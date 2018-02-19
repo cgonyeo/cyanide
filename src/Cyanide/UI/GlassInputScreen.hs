@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Cyanide.UI.GlassCreationScreen where
+module Cyanide.UI.GlassInputScreen where
 
 import Lens.Micro ((^.))
 import qualified Brick as B
@@ -24,7 +24,7 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (GlassCreationScreen ed l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn scr@(GlassInputScreen ed mg l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
             B.continue $ CyanideState conn (GlassSelectionScreen l)
@@ -36,8 +36,12 @@ handleEvent s@(CyanideState conn (GlassCreationScreen ed l)) (B.VtyEvent e) =
                 else do
                     glasses <- liftIO $ Glasses.getGlasses conn
                     let newGlassName = newGlassNames !! 0
-                    case filter (\(Types.Glass _ n) -> n == newGlassName) glasses of
-                        [] -> do
+                    case (mg,filter (\(Types.Glass _ n) -> n == newGlassName) glasses) of
+                        (Just (Types.Glass i _),[]) -> do
+                            newGlass <- liftIO $ Glasses.updateGlass conn i newGlassName
+                            let newList = BL.listModify (\_ -> newGlass) l
+                            B.continue $ CyanideState conn (GlassSelectionScreen newList)
+                        (Nothing,[]) -> do
                             newGlass <- liftIO $ Glasses.newGlass conn newGlassName
                             let newList = BL.listInsert (length l) newGlass l
                             B.continue $ CyanideState conn (GlassSelectionScreen newList)
@@ -45,17 +49,26 @@ handleEvent s@(CyanideState conn (GlassCreationScreen ed l)) (B.VtyEvent e) =
 
         ev -> do
             newEdit <- BE.handleEditorEvent e ed
-            B.continue $ CyanideState conn (GlassCreationScreen newEdit l)
+            B.continue $ CyanideState conn scr { glassCreationName = newEdit }
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (GlassCreationScreen e l)) = [ui]
-    where ui = BC.center
+drawUI (CyanideState conn (GlassInputScreen e mg l)) = [ui]
+    where prompt = case mg of
+                    Just (Types.Glass _ n) -> "What do you want to rename \"" `T.append` n `T.append` "\" to?"
+                    Nothing -> "What glass do you want to create?"
+
+
+          enterAction = case mg of
+                            Just _ -> "Modify"
+                            Nothing -> "Create"
+    
+          ui = BC.center
                $ B.hLimit 80
                $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txt $ "What glass do you want to create?"
+                            [ BC.hCenter $ B.txt prompt
                             , BC.hCenter $ B.hLimit 24 $ B.padAll 1 $ BB.border $ BE.renderEditor drawEdit True e
-                            , renderInstructions [ ("Enter","Create")
+                            , renderInstructions [ ("Enter",enterAction)
                                                  , ("Esc","Previous screen")
                                                  ]
                             ]

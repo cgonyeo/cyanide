@@ -33,7 +33,11 @@ handleEvent s@(CyanideState conn (GlassSelectionScreen l)) (B.VtyEvent e) =
             B.continue $ CyanideState conn (GlassDeletionScreen l)
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn (GlassCreationScreen (BE.editorText "GlassCreationScreen" (Just 1) "") l)
+            B.continue $ CyanideState conn (GlassInputScreen (BE.editorText "GlassCreationScreen" (Just 1) "") Nothing l)
+
+        Vty.EvKey (Vty.KChar 'e') [] ->
+            let (Just (_, g@(Types.Glass _ n))) = BL.listSelectedElement l
+            in B.continue $ CyanideState conn (GlassInputScreen (BE.editorText "GlassModificationScreen" (Just 1) n) (Just g) l)
 
         ev -> do
             newList <- BL.handleListEventVi BL.handleListEvent ev l
@@ -49,6 +53,7 @@ drawUI (CyanideState conn (GlassSelectionScreen l)) = [ui]
                $ B.vLimit 25 $ B.vBox
                             [ BC.hCenter box
                             , renderInstructions [ ("n","New glass")
+                                                 , ("e","Edit glass")
                                                  , ("d","Delete glass")
                                                  , ("Esc","Previous screen")
                                                  ]

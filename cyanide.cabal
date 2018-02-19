@@ -31,7 +31,7 @@ executable cyanide
                      , Cyanide.UI.State
                      , Cyanide.UI.GlassSelectionScreen
                      , Cyanide.UI.GlassDeletionScreen
-                     , Cyanide.UI.GlassCreationScreen
+                     , Cyanide.UI.GlassInputScreen
                      , Cyanide.UI.RecipeSelectionScreen
                      , Cyanide.UI.RecipeDetailScreen
                      , Cyanide.UI.IngredientSelectionScreen

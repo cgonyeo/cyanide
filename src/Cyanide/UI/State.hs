@@ -23,8 +23,9 @@ data CyanideScreen
     | GlassDeletionScreen
         { glassDeletionList :: BL.List Name Types.Glass
         }
-    | GlassCreationScreen
+    | GlassInputScreen
         { glassCreationName           :: BE.Editor T.Text Name
+        , glassBeingEdited            :: Maybe Types.Glass
         , glassCreationPreviousScreen :: BL.List Name Types.Glass
         }
     | IngredientSelectionScreen

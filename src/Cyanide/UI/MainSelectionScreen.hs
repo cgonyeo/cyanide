@@ -76,8 +76,8 @@ drawUI (CyanideState conn MainSelectionScreen) =
         $ B.vBox [ BC.hCenter $ B.txt "Cyanide: home bar management system"
                  , BC.hCenter $ B.hLimit 34 BB.hBorder
                  , renderInstructions [ ("r","Recipes")
-                                      , ("g","Glasses")
                                       , ("i","Ingredients")
+                                      , ("g","Glasses")
                                       , ("c","Ingredient classes")
                                       , ("Esc","Exit")
                                       ]

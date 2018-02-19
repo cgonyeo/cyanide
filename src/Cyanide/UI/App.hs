@@ -18,7 +18,7 @@ import qualified Cyanide.UI.RecipeDetailScreen as RecipeDetailScreen
 import qualified Cyanide.UI.MainSelectionScreen as MainSelectionScreen
 import qualified Cyanide.UI.GlassSelectionScreen as GlassSelectionScreen
 import qualified Cyanide.UI.GlassDeletionScreen as GlassDeletionScreen
-import qualified Cyanide.UI.GlassCreationScreen as GlassCreationScreen
+import qualified Cyanide.UI.GlassInputScreen as GlassInputScreen
 import qualified Cyanide.UI.IngredientSelectionScreen as IngredientSelectionScreen
 import qualified Cyanide.UI.IngredientCreationScreen as IngredientCreationScreen
 import qualified Cyanide.UI.IngredientDetailScreen as IngredientDetailScreen
@@ -52,7 +52,7 @@ attrMap = B.attrMap Vty.defAttr
    ++ RecipeSelectionScreen.attrMap
    ++ GlassSelectionScreen.attrMap
    ++ GlassDeletionScreen.attrMap
-   ++ GlassCreationScreen.attrMap
+   ++ GlassInputScreen.attrMap
    ++ IngredientSelectionScreen.attrMap
    ++ IngredientCreationScreen.attrMap
    ++ IngredientDetailScreen.attrMap
@@ -72,8 +72,8 @@ handleEvent s@(CyanideState _ (GlassSelectionScreen _)) e =
     GlassSelectionScreen.handleEvent s e
 handleEvent s@(CyanideState _ (GlassDeletionScreen _)) e =
     GlassDeletionScreen.handleEvent s e
-handleEvent s@(CyanideState _ (GlassCreationScreen _ _)) e =
-    GlassCreationScreen.handleEvent s e
+handleEvent s@(CyanideState _ (GlassInputScreen _ _ _)) e =
+    GlassInputScreen.handleEvent s e
 handleEvent s@(CyanideState _ (RecipeSelectionScreen _)) e =
     RecipeSelectionScreen.handleEvent s e
 handleEvent s@(CyanideState _ (RecipeDetailScreen _ _ _ _)) e =
@@ -104,8 +104,8 @@ drawUI s@(CyanideState _ (GlassSelectionScreen _)) =
     GlassSelectionScreen.drawUI s
 drawUI s@(CyanideState _ (GlassDeletionScreen _)) =
     GlassDeletionScreen.drawUI s
-drawUI s@(CyanideState _ (GlassCreationScreen _ _)) =
-    GlassCreationScreen.drawUI s
+drawUI s@(CyanideState _ (GlassInputScreen _ _ _)) =
+    GlassInputScreen.drawUI s
 drawUI s@(CyanideState _ (RecipeSelectionScreen _)) =
     RecipeSelectionScreen.drawUI s
 drawUI s@(CyanideState _ (RecipeDetailScreen _ _ _ _)) =
