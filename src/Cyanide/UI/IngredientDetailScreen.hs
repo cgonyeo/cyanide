@@ -130,11 +130,11 @@ drawUI (CyanideState conn (IngredientDetailScreen ing pl rl mr _ f)) = [ui]
           ingredientInfoLabelSize = if length purchases > 0 then 8 else 6
 
           ingredientInfo =
-            B.vBox $ [ addRow ingredientInfoLabelSize "Name" [Types.ingredientName ing]
-                     , addRow ingredientInfoLabelSize "Type" [Types.ingredientClass ing]
-                     , addRow ingredientInfoLabelSize "Amount" [(T.pack $ show $ Types.amount ing) +++ Types.unit ing]
+            B.vBox $ [ addRow ingredientInfoLabelSize "Name" [B.txt $ Types.ingredientName ing]
+                     , addRow ingredientInfoLabelSize "Type" [B.txt $ Types.ingredientClass ing]
+                     , addRow ingredientInfoLabelSize "Amount" [B.txt $ (T.pack $ show $ Types.amount ing) +++ Types.unit ing]
                      ] ++ if length purchases > 0
-                            then [ addRow ingredientInfoLabelSize "Avg Cost" [formatMoney avgCost ] ]
+                            then [ addRow ingredientInfoLabelSize "Avg Cost" [B.txt $ formatMoney avgCost ] ]
                             else [ ]
     
           -- TODO: alternate UI for ingredients not used in recipes

@@ -52,10 +52,10 @@ drawUI (CyanideState conn (PurchaseDeletionScreen i ps _ _ _ _)) = [ui]
                                 $ BB.borderWithLabel (B.txt "Purchase")
                                 $ B.padAll 1
                                 $ B.vBox
-                                     [ addRow 12 "Name" [Types.ingredientName i]
-                                     , addRow 12 "Timestamp" [T.pack $ show t]
-                                     , addRow 12 "Location" [l]
-                                     , addRow 12 "Amount" [formatMoney p]
+                                     [ addRow 12 "Name" [B.txt $ Types.ingredientName i]
+                                     , addRow 12 "Timestamp" [B.txt $ T.pack $ show t]
+                                     , addRow 12 "Location" [B.txt l]
+                                     , addRow 12 "Amount" [B.txt $ formatMoney p]
                                      ]
                             , renderInstructions [ ("y","Yes")
                                                  , ("n","No")

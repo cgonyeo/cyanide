@@ -17,7 +17,7 @@ import Control.Monad.IO.Class
 
 import Cyanide.UI.State
 import qualified Cyanide.UI.IngredientDetailScreen as IngredientDetail
-import qualified Cyanide.UI.IngredientCreationScreen as IngredientCreation
+import qualified Cyanide.UI.IngredientInputScreen as IngredientInput
 import qualified Cyanide.Data.IngredientClasses as IngredientClasses
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Ingredients as Ingredients
@@ -50,24 +50,51 @@ handleEvent s@(CyanideState conn (IngredientSelectionScreen l)) (B.VtyEvent e) =
                 l
                 (BF.focusRing ["IngredientDetailPurchases", "IngredientDetailRecipes"])
 
-        --Vty.EvKey (Vty.KChar 'd') [] ->
-        --    B.continue $ CyanideState conn (IngredientDeletionScreen l)
+        Vty.EvKey (Vty.KChar 'd') [] -> do
+            let Just (_,ingr) = BL.listSelectedElement l
+            recipes1 <- liftIO $ Recipes.getRecipesUsingIngredient conn ingr
+            recipes2 <- liftIO $ Recipes.getRecipesUsingIngredientClass conn (Types.ingredientClass ingr)
+            recipeForIngr <- liftIO $ Recipes.getRecipeForIngredient conn ingr
+            B.continue $ CyanideState conn (IngredientDeletionScreen (recipes1++recipes2) recipeForIngr l)
 
         Vty.EvKey (Vty.KChar 'n') [] -> do
             ics <- liftIO $ IngredientClasses.getIngredientClasses conn
 
-            let ed = BE.editor IngredientCreation.editorName (Just 1) ""
-                iclist = BL.list IngredientCreation.classesName (V.fromList ics) 1
-                ulist = BL.list IngredientCreation.unitsName (V.fromList Units.ingredientUnits) 1
-                f = BF.focusRing [ IngredientCreation.editorName
-                                 , IngredientCreation.classesName
-                                 , IngredientCreation.unitsName
+            let ed = BE.editor IngredientInput.editorName (Just 1) ""
+                iclist = BL.list IngredientInput.classesName (V.fromList ics) 1
+                ulist = BL.list IngredientInput.unitsName (V.fromList Units.ingredientUnits) 1
+                f = BF.focusRing [ IngredientInput.editorName
+                                 , IngredientInput.classesName
+                                 , IngredientInput.unitsName
                                  ]
-            B.continue $ CyanideState conn (IngredientCreationScreen ed iclist ulist f False l)
+            B.continue $ CyanideState conn (IngredientInputScreen ed iclist ulist f False Nothing l)
+
+        Vty.EvKey (Vty.KChar 'e') [] -> do
+            let Just (_,ingr) = BL.listSelectedElement l
+            ics <- liftIO $ IngredientClasses.getIngredientClasses conn
+
+            let selectedIcIndex = getIndex (Types.ingredientClass ingr) Types.ingredientClassName ics
+                selectedUnitIndex = getIndex (Types.unit ingr) id Units.ingredientUnits
+                ed = BE.editor IngredientInput.editorName (Just 1) (Types.ingredientName ingr)
+                iclist = BL.listMoveTo selectedIcIndex
+                                $ BL.list IngredientInput.classesName (V.fromList ics) 1
+                ulist = BL.listMoveTo selectedUnitIndex
+                                $ BL.list IngredientInput.unitsName (V.fromList Units.ingredientUnits) 1
+                f = BF.focusRing [ IngredientInput.editorName
+                                 , IngredientInput.classesName
+                                 , IngredientInput.unitsName
+                                 ]
+            B.continue $ CyanideState conn (IngredientInputScreen ed iclist ulist f (Types.notForRecipes ingr) (Just ingr) l)
 
         ev -> do
             newList <- BL.handleListEventVi BL.handleListEvent ev l
             B.continue $ CyanideState conn (IngredientSelectionScreen newList)
+    where getIndex :: (Eq b) => b -> (a -> b) -> [a] -> Int
+          getIndex mustEqual toEqualForm lst =
+                let matches = filter (\x -> snd x == mustEqual) $ zip [0..] (map toEqualForm lst)
+                in case matches of
+                    [(i,_)] -> i
+                    _ -> 0
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
@@ -80,6 +107,8 @@ drawUI (CyanideState conn (IngredientSelectionScreen l)) = [ui]
                             [ BC.hCenter box
                             , renderInstructions [ ("Enter","View details")
                                                  , ("n","New ingredient")
+                                                 , ("e","Edit ingredient")
+                                                 , ("d","Delete ingredient")
                                                  , ("Esc","Previous screen")
                                                  ]
                             ]

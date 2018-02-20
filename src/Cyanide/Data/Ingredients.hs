@@ -43,6 +43,11 @@ newIngredient conn (n,(IngredientClass ci c),u,s) = do
     [P.Only i] <- P.query conn "INSERT INTO ingredients (name,class,amount,unit,notForRecipes) VALUES (?,?,?,?,?) RETURNING (id)" (n,ci,0 :: Int,u,s)
     return $ Ingredient i n c 0 u s
 
+updateIngredient :: DBConn -> Int -> (T.Text,IngredientClass,T.Text,Bool) -> IO Ingredient
+updateIngredient conn i (n,(IngredientClass ci c),u,s) = do
+    P.execute conn "UPDATE ingredients SET name = ?, class = ?, unit = ?, notForRecipes = ? WHERE id = ?" (n,ci,u,s,i)
+    getIngredient conn i
+
 updateIngredientAmount :: DBConn -> (Ingredient,Int) -> IO ()
 updateIngredientAmount conn ((Ingredient i _ _ _ _ _),a) = do
     P.execute conn "UPDATE ingredients SET amount = ? WHERE id = ?" (a,i)

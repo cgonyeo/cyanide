@@ -10,13 +10,18 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Brick.Widgets.Center as BC
 import qualified Brick.Widgets.Border as BB
+import qualified Brick.Widgets.Edit as BE
+import qualified Brick.Widgets.List as BL
+import qualified Brick.Focus as BF
 import Data.Monoid
 import Control.Monad.IO.Class
 
 import Cyanide.UI.State
 import Cyanide.UI.Util
+import qualified Cyanide.UI.RecipeInputScreen as RecipeInput
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Recipes as Recipes
+import qualified Cyanide.Data.Glasses as Glasses
 import qualified Cyanide.Data.Postgres as Postgres
 
 attrMap :: [(B.AttrName, Vty.Attr)]
@@ -28,9 +33,16 @@ handleEvent s@(CyanideState conn scr@(RecipeSelectionScreen l)) (B.VtyEvent e) =
         Vty.EvKey (Vty.KEsc) [] ->
             B.continue $ CyanideState conn MainSelectionScreen
 
-        Vty.EvKey (Vty.KChar 'n') [] ->
-            let newList = BL.listInsert 0 (Types.Recipe 0 "test" "testy") l
-            in B.continue $ CyanideState conn (RecipeSelectionScreen newList)
+        Vty.EvKey (Vty.KChar 'n') [] -> do
+            glasses <- liftIO $ Glasses.getGlasses conn
+            let nameEd = BE.editor RecipeInput.recipeName (Just 1) ""
+                glist = BL.list RecipeInput.glassName (V.fromList glasses) 1
+                ilist = BL.list RecipeInput.ingredientsName (V.fromList []) 1
+                f = BF.focusRing [ RecipeInput.recipeName
+                                 , RecipeInput.glassName
+                                 , RecipeInput.ingredientsName
+                                 ]
+            B.continue $ CyanideState conn (RecipeInputScreen nameEd glist ilist "" Nothing Nothing f scr)
 
         Vty.EvKey (Vty.KEnter) [] ->
             case (BL.listSelectedElement l) of

@@ -34,9 +34,12 @@ executable cyanide
                      , Cyanide.UI.GlassInputScreen
                      , Cyanide.UI.RecipeSelectionScreen
                      , Cyanide.UI.RecipeDetailScreen
+                     , Cyanide.UI.RecipeInputScreen
+                     , Cyanide.UI.RecipeInputIngredientScreen
                      , Cyanide.UI.IngredientSelectionScreen
-                     , Cyanide.UI.IngredientCreationScreen
+                     , Cyanide.UI.IngredientInputScreen
                      , Cyanide.UI.IngredientDetailScreen
+                     , Cyanide.UI.IngredientDeletionScreen
                      , Cyanide.UI.PurchaseDeletionScreen
                      , Cyanide.UI.PurchaseCreationScreen
                      , Cyanide.UI.Util

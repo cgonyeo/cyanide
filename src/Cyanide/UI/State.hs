@@ -31,13 +31,14 @@ data CyanideScreen
     | IngredientSelectionScreen
         { ingredientSelectionList :: BL.List Name Types.Ingredient
         }
-    | IngredientCreationScreen
-        { ingredientCreationName           :: BE.Editor T.Text Name
-        , ingredientCreationClass          :: BL.List Name Types.IngredientClass
-        , ingredientCreationUnit           :: BL.List Name T.Text
-        , ingredientCreationFocusRing      :: BF.FocusRing Name
-        , ingredientCreationNotForRecipes  :: Bool
-        , ingredientCreationPreviousScreen :: BL.List Name Types.Ingredient
+    | IngredientInputScreen
+        { ingredientInputName           :: BE.Editor T.Text Name
+        , ingredientInputClass          :: BL.List Name Types.IngredientClass
+        , ingredientInputUnit           :: BL.List Name T.Text
+        , ingredientInputFocusRing      :: BF.FocusRing Name
+        , ingredientInputNotForRecipes  :: Bool
+        , ingredientInputBeingModified  :: Maybe Types.Ingredient
+        , ingredientInputPreviousScreen :: BL.List Name Types.Ingredient
         }
     | IngredientDetailScreen
         { ingredient                     :: Types.Ingredient
@@ -46,6 +47,11 @@ data CyanideScreen
         , ingredientRecipe               :: Maybe Types.Recipe
         , ingredientDetailPreviousScreen :: BL.List Name Types.Ingredient
         , ingredientFocusRing            :: BF.FocusRing Name
+        }
+    | IngredientDeletionScreen
+        { ingredientDeletionUsedIn               :: [Types.Recipe]
+        , ingredientDeletionRecipe               :: Maybe Types.Recipe
+        , ingredientDeletionDetailPreviousScreen :: BL.List Name Types.Ingredient
         }
     | PurchaseDeletionScreen
         { purchaseDeletionIngredient           :: Types.Ingredient
@@ -77,6 +83,26 @@ data CyanideScreen
         , recipeIngredientList :: [Types.IngredientListItem]
         , recipePreviousScreen :: CyanideScreen
         }
+    | RecipeInputScreen
+        { recipeInputName           :: BE.Editor T.Text Name
+        , recipeInputGlass          :: BL.List Name Types.Glass
+        , recipeInputIngredientList :: BL.List Name Types.IngredientListItem
+        , recipeInputInstructions   :: T.Text
+        , recipeInputRecipeFor      :: Maybe Types.Ingredient
+        , recipeInputBeingModified  :: Maybe Types.Recipe
+        , recipeInputFocusRing      :: BF.FocusRing Name
+        , recipeInputPreviousScreen :: CyanideScreen
+        }
+    | RecipeInputIngredientScreen
+        { recipeInputIngredientRecipeName    :: T.Text
+        , recipeInputIngredientAmount        :: BE.Editor T.Text Name
+        , recipeInputIngredientUnit          :: BE.Editor T.Text Name
+        , recipeInputIngredientFilter        :: BE.Editor T.Text Name
+        , recipeInputIngredientListOrig      :: [RecipeInputIngrListItem]
+        , recipeInputIngredientOptionsList   :: BL.List Name RecipeInputIngrListItem
+        , recipeInputIngredientFocusRing     :: BF.FocusRing Name
+        , recipeInputIngredientPrevScreen    :: Maybe Types.IngredientListItem -> CyanideScreen
+        }
     | IngredientClassSelectionScreen
         { ingredientClassUIList :: BL.List Name Types.IngredientClass
         }
@@ -88,3 +114,6 @@ data CyanideScreen
         , ingredientClassBeingEdited            :: Maybe Types.IngredientClass
         , ingredientClassCreationPreviousScreen :: BL.List Name Types.IngredientClass
         }
+
+data RecipeInputIngrListItem = IngredientListItem Int T.Text
+                             | IngredientClassListItem Int T.Text

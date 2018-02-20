@@ -21,7 +21,7 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (RecipeDetailScreen _ _ _ prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn scr@(RecipeDetailScreen _ _ _ prev)) (B.VtyEvent e) =
     case e of
         -- edit
         --Vty.EvKey (Vty.KChar 'e') [] ->
@@ -39,10 +39,10 @@ drawUI (CyanideState conn (RecipeDetailScreen r g is _)) =
         $ B.hLimit 80
         $ B.vLimit 25
         $ B.vBox [ BC.hCenter $ BB.border
-                     $ B.vBox [ addPaddedRow 12 "Name" [Types.recipeName r]
+                     $ B.vBox [ addPaddedRow 12 "Name" [B.txt $ Types.recipeName r]
                               , handleMaybeGlass g
-                              , addPaddedRow 12 "Ingredients" (map formatIngr is)
-                              , addPaddedRow 12 "Instructions" [Types.instructions r]
+                              , addPaddedRow 12 "Ingredients" (map B.txt $ map formatIngr is)
+                              , addPaddedRow 12 "Instructions" [B.txt $ Types.instructions r]
                               ]
                  , renderInstructions [ ("Esc","Previous screen")
                                       , ("e","Edit recipe")
@@ -52,4 +52,4 @@ drawUI (CyanideState conn (RecipeDetailScreen r g is _)) =
 
     where handleMaybeGlass :: Maybe Types.Glass -> B.Widget Name
           handleMaybeGlass Nothing  = B.emptyWidget
-          handleMaybeGlass (Just g) = addPaddedRow 12 "Glass" [Types.glassName g]
+          handleMaybeGlass (Just g) = addPaddedRow 12 "Glass" [B.txt $ Types.glassName g]

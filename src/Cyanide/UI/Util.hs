@@ -21,13 +21,13 @@ formatText JustifyRight size t = B.hLimit size $ B.txt $ T.justifyRight size ' '
 formatMoney :: Int -> T.Text
 formatMoney n = "$" `T.append` (T.pack $ show $ fromIntegral n / 100)
 
-addRow :: Int -> T.Text -> [T.Text] -> B.Widget Name
+addRow :: Int -> T.Text -> [B.Widget Name] -> B.Widget Name
 addRow maxTitleSize title contents =
   B.hBox [ formatText JustifyRight maxTitleSize title
-         , B.padLeft (B.Pad 2) $ B.vBox $ map B.txt contents
+         , B.padLeft (B.Pad 2) $ B.vBox contents
          ]
 
-addPaddedRow :: Int -> T.Text -> [T.Text] -> B.Widget Name
+addPaddedRow :: Int -> T.Text -> [B.Widget Name] -> B.Widget Name
 addPaddedRow maxTitleSize title contents =
   B.padAll 1 $ addRow maxTitleSize title contents
 

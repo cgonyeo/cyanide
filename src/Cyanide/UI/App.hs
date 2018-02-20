@@ -15,13 +15,16 @@ import Cyanide.UI.State
 
 import qualified Cyanide.UI.RecipeSelectionScreen as RecipeSelectionScreen
 import qualified Cyanide.UI.RecipeDetailScreen as RecipeDetailScreen
+import qualified Cyanide.UI.RecipeInputScreen as RecipeInputScreen
+import qualified Cyanide.UI.RecipeInputIngredientScreen as RecipeInputIngredientScreen
 import qualified Cyanide.UI.MainSelectionScreen as MainSelectionScreen
 import qualified Cyanide.UI.GlassSelectionScreen as GlassSelectionScreen
 import qualified Cyanide.UI.GlassDeletionScreen as GlassDeletionScreen
 import qualified Cyanide.UI.GlassInputScreen as GlassInputScreen
 import qualified Cyanide.UI.IngredientSelectionScreen as IngredientSelectionScreen
-import qualified Cyanide.UI.IngredientCreationScreen as IngredientCreationScreen
+import qualified Cyanide.UI.IngredientInputScreen as IngredientInputScreen
 import qualified Cyanide.UI.IngredientDetailScreen as IngredientDetailScreen
+import qualified Cyanide.UI.IngredientDeletionScreen as IngredientDeletionScreen
 import qualified Cyanide.UI.PurchaseDeletionScreen as PurchaseDeletionScreen
 import qualified Cyanide.UI.PurchaseCreationScreen as PurchaseCreationScreen
 import qualified Cyanide.UI.IngredientClassSelectionScreen as IngredientClassSelectionScreen
@@ -49,13 +52,16 @@ attrMap = B.attrMap Vty.defAttr
       ]
    ++ MainSelectionScreen.attrMap
    ++ RecipeDetailScreen.attrMap
+   ++ RecipeInputScreen.attrMap
+   ++ RecipeInputIngredientScreen.attrMap
    ++ RecipeSelectionScreen.attrMap
    ++ GlassSelectionScreen.attrMap
    ++ GlassDeletionScreen.attrMap
    ++ GlassInputScreen.attrMap
    ++ IngredientSelectionScreen.attrMap
-   ++ IngredientCreationScreen.attrMap
+   ++ IngredientInputScreen.attrMap
    ++ IngredientDetailScreen.attrMap
+   ++ IngredientDeletionScreen.attrMap
    ++ PurchaseDeletionScreen.attrMap
    ++ PurchaseCreationScreen.attrMap
    ++ IngredientClassSelectionScreen.attrMap
@@ -78,12 +84,18 @@ handleEvent s@(CyanideState _ (RecipeSelectionScreen _)) e =
     RecipeSelectionScreen.handleEvent s e
 handleEvent s@(CyanideState _ (RecipeDetailScreen _ _ _ _)) e =
     RecipeDetailScreen.handleEvent s e
+handleEvent s@(CyanideState _ (RecipeInputScreen _ _ _ _ _ _ _ _)) e =
+    RecipeInputScreen.handleEvent s e
+handleEvent s@(CyanideState _ (RecipeInputIngredientScreen _ _ _ _ _ _ _ _)) e =
+    RecipeInputIngredientScreen.handleEvent s e
 handleEvent s@(CyanideState _ (IngredientSelectionScreen _)) e =
     IngredientSelectionScreen.handleEvent s e
-handleEvent s@(CyanideState _ (IngredientCreationScreen _ _ _ _ _ _)) e =
-    IngredientCreationScreen.handleEvent s e
+handleEvent s@(CyanideState _ (IngredientInputScreen _ _ _ _ _ _ _)) e =
+    IngredientInputScreen.handleEvent s e
 handleEvent s@(CyanideState _ (IngredientDetailScreen _ _ _ _ _ _)) e =
     IngredientDetailScreen.handleEvent s e
+handleEvent s@(CyanideState _ (IngredientDeletionScreen _ _ _)) e =
+    IngredientDeletionScreen.handleEvent s e
 handleEvent s@(CyanideState _ (PurchaseDeletionScreen _ _ _ _ _ _)) e =
     PurchaseDeletionScreen.handleEvent s e
 handleEvent s@(CyanideState _ (PurchaseCreationScreen _ _ _ _ _ _ _ _ _)) e =
@@ -110,12 +122,18 @@ drawUI s@(CyanideState _ (RecipeSelectionScreen _)) =
     RecipeSelectionScreen.drawUI s
 drawUI s@(CyanideState _ (RecipeDetailScreen _ _ _ _)) =
     RecipeDetailScreen.drawUI s
+drawUI s@(CyanideState _ (RecipeInputScreen _ _ _ _ _ _ _ _)) =
+    RecipeInputScreen.drawUI s
+drawUI s@(CyanideState _ (RecipeInputIngredientScreen _ _ _ _ _ _ _ _)) =
+    RecipeInputIngredientScreen.drawUI s
 drawUI s@(CyanideState _ (IngredientSelectionScreen _)) =
     IngredientSelectionScreen.drawUI s
-drawUI s@(CyanideState _ (IngredientCreationScreen _ _ _ _ _ _)) =
-    IngredientCreationScreen.drawUI s
+drawUI s@(CyanideState _ (IngredientInputScreen _ _ _ _ _ _ _)) =
+    IngredientInputScreen.drawUI s
 drawUI s@(CyanideState _ (IngredientDetailScreen _ _ _ _ _ _)) =
     IngredientDetailScreen.drawUI s
+drawUI s@(CyanideState _ (IngredientDeletionScreen _ _ _)) =
+    IngredientDeletionScreen.drawUI s
 drawUI s@(CyanideState _ (PurchaseDeletionScreen _ _ _ _ _ _)) =
     PurchaseDeletionScreen.drawUI s
 drawUI s@(CyanideState _ (PurchaseCreationScreen _ _ _ _ _ _ _ _ _)) =
