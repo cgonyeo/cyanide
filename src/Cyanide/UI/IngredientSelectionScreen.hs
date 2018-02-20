@@ -52,10 +52,9 @@ handleEvent s@(CyanideState conn (IngredientSelectionScreen l)) (B.VtyEvent e) =
 
         Vty.EvKey (Vty.KChar 'd') [] -> do
             let Just (_,ingr) = BL.listSelectedElement l
-            recipes1 <- liftIO $ Recipes.getRecipesUsingIngredient conn ingr
-            recipes2 <- liftIO $ Recipes.getRecipesUsingIngredientClass conn (Types.ingredientClass ingr)
+            recipes <- liftIO $ Recipes.getRecipesUsingIngredient conn ingr
             recipeForIngr <- liftIO $ Recipes.getRecipeForIngredient conn ingr
-            B.continue $ CyanideState conn (IngredientDeletionScreen (recipes1++recipes2) recipeForIngr l)
+            B.continue $ CyanideState conn (IngredientDeletionScreen recipes recipeForIngr l)
 
         Vty.EvKey (Vty.KChar 'n') [] -> do
             ics <- liftIO $ IngredientClasses.getIngredientClasses conn

@@ -37,6 +37,7 @@ handleEvent s@(CyanideState conn (IngredientDeletionScreen usedIn mr l)) (B.VtyE
                 (0,Nothing) -> deleteIngredient l
                 (0,Just r) -> do liftIO $ Recipes.deleteRecipe conn r
                                  deleteIngredient l
+                _ -> B.continue s
 
         _ -> B.continue s
     where deleteIngredient l = do
