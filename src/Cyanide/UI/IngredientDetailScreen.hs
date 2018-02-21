@@ -14,8 +14,10 @@ import qualified Brick.Widgets.Edit as BE
 import qualified Brick.Focus as BF
 import Data.Monoid
 import Control.Monad.IO.Class
+import Data.Maybe
 
 import Cyanide.UI.State
+import qualified Cyanide.UI.RecipeInputScreen as RecipeInput
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Ingredients as Ingredients
 import qualified Cyanide.Data.Recipes as Recipes
@@ -55,7 +57,14 @@ handleEvent s@(CyanideState conn scr@(IngredientDetailScreen i ps rs mr l f)) (B
                 Just r -> do
                     ingrs <- liftIO $ Recipes.getIngredientsForRecipe conn r
                     B.continue $ CyanideState conn $ RecipeDetailScreen r Nothing ingrs scr
-                Nothing -> B.continue s
+                Nothing -> do
+                    let nameEd = BE.editor RecipeInput.recipeName (Just 1) ""
+                        glist = BL.list RecipeInput.glassName (V.fromList []) 1
+                        ilist = BL.list RecipeInput.ingredientsName (V.fromList []) 1
+                        f = BF.focusRing [ RecipeInput.ingredientsName
+                                         ]
+                        goBack mr = scr { ingredientRecipe = mr }
+                    B.continue $ CyanideState conn (RecipeInputScreen nameEd glist ilist "" (Just i) Nothing f goBack)
 
         Vty.EvKey Vty.KEnter [] ->
             case (BF.focusGetCurrent f,BL.listSelectedElement rs) of
@@ -99,18 +108,14 @@ drawUI (CyanideState conn (IngredientDetailScreen ing pl rl mr _ f)) = [ui]
 
           instructions =
               B.padLeft (B.Pad 16) $ 
-              B.hBox [ B.vBox $ case mr of
-                                Nothing -> [ B.txt "Tab - Change focus"
-                                           , B.txt "  p - Plus 1 to amount"
-                                           , B.txt "  m - Minus 1 to amount"
-                                           , B.txt "Esc - Previous screen"
-                                           ]
-                                Just _ -> [ B.txt "Tab - Change focus"
-                                          , B.txt "  r - View recipe"
-                                          , B.txt "  p - Plus 1 to amount"
-                                          , B.txt "  m - Minus 1 to amount"
-                                          , B.txt "Esc - Previous screen"
-                                          ]
+              B.hBox [ B.vBox  [ B.txt "Tab - Change focus"
+                               , if isJust mr
+                                    then B.txt "  r - View recipe"
+                                    else B.txt "  r - Create recipe"
+                               , B.txt "  p - Plus 1 to amount"
+                               , B.txt "  m - Minus 1 to amount"
+                               , B.txt "Esc - Previous screen"
+                               ]
                      , B.padLeft (B.Pad 2) $ B.vBox $ 
                         if BF.focusGetCurrent (f) == Just purchasesListName then
                             [ B.txt "n - New purchase"
@@ -154,7 +159,8 @@ drawUI (CyanideState conn (IngredientDetailScreen ing pl rl mr _ f)) = [ui]
             ]
 
 listDrawRecipe :: Bool -> Types.Recipe -> B.Widget Name
-listDrawRecipe sel (Types.Recipe _ n _) = B.txt n
+listDrawRecipe sel (Types.Recipe _ (Left n) _) = B.txt n
+listDrawRecipe sel (Types.Recipe _ (Right i) _) = B.txt $ "recipe for " `T.append` Types.ingredientName i
 
 listDrawPurchase :: Bool -> Types.Purchase -> B.Widget Name
 listDrawPurchase sel (Types.Purchase t l p) =

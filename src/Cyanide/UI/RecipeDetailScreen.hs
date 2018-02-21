@@ -39,7 +39,7 @@ drawUI (CyanideState conn (RecipeDetailScreen r g is _)) =
         $ B.hLimit 80
         $ B.vLimit 25
         $ B.vBox [ BC.hCenter $ BB.border
-                     $ B.vBox [ addPaddedRow 12 "Name" [B.txt $ Types.recipeName r]
+                     $ B.vBox [ handleRecipeName $ Types.recipeName r
                               , handleMaybeGlass g
                               , addPaddedRow 12 "Ingredients" (map B.txt $ map formatIngr is)
                               , addPaddedRow 12 "Instructions" [B.txt $ Types.instructions r]
@@ -53,3 +53,7 @@ drawUI (CyanideState conn (RecipeDetailScreen r g is _)) =
     where handleMaybeGlass :: Maybe Types.Glass -> B.Widget Name
           handleMaybeGlass Nothing  = B.emptyWidget
           handleMaybeGlass (Just g) = addPaddedRow 12 "Glass" [B.txt $ Types.glassName g]
+
+          handleRecipeName :: Either T.Text Types.Ingredient -> B.Widget Name
+          handleRecipeName (Left n) = addPaddedRow 12 "Name" [B.txt $ n]
+          handleRecipeName (Right i) = addPaddedRow 12 "Name" [B.txt $ "recipe for " `T.append` Types.ingredientName i]

@@ -56,12 +56,11 @@ instance FromRow Purchase
 
 data Recipe = Recipe
     { recipeId        :: Int
-    , recipeName      :: T.Text
+    , recipeName      :: Either T.Text Ingredient
     -- Human readable instructions
     , instructions    :: T.Text
     }
     deriving(Generic,Show)
-instance FromRow Recipe
 
 data IngredientListItem = IngredientListItem
     { amountNumer     :: Int

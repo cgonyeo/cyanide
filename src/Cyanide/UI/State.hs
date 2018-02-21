@@ -91,7 +91,7 @@ data CyanideScreen
         , recipeInputRecipeFor      :: Maybe Types.Ingredient
         , recipeInputBeingModified  :: Maybe Types.Recipe
         , recipeInputFocusRing      :: BF.FocusRing Name
-        , recipeInputPreviousScreen :: CyanideScreen
+        , recipeInputPreviousScreen :: Maybe Types.Recipe -> CyanideScreen
         }
     | RecipeInputIngredientScreen
         { recipeInputIngredientRecipeName    :: T.Text
@@ -117,3 +117,7 @@ data CyanideScreen
 
 data RecipeInputIngrListItem = IngredientListItem Int T.Text
                              | IngredientClassListItem Int T.Text
+
+getListItemName :: RecipeInputIngrListItem -> T.Text
+getListItemName (IngredientListItem _ n) = n
+getListItemName (IngredientClassListItem _ n) = n

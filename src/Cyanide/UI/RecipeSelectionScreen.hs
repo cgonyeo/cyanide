@@ -42,7 +42,12 @@ handleEvent s@(CyanideState conn scr@(RecipeSelectionScreen l)) (B.VtyEvent e) =
                                  , RecipeInput.glassName
                                  , RecipeInput.ingredientsName
                                  ]
-            B.continue $ CyanideState conn (RecipeInputScreen nameEd glist ilist "" Nothing Nothing f scr)
+                goBack mr = case mr of
+                                Just r -> 
+                                    let newList = BL.listInsert (length l) r l
+                                    in scr { recipeUIList = newList }
+                                Nothing -> scr
+            B.continue $ CyanideState conn (RecipeInputScreen nameEd glist ilist "" Nothing Nothing f goBack)
 
         Vty.EvKey (Vty.KEnter) [] ->
             case (BL.listSelectedElement l) of
@@ -77,4 +82,5 @@ drawUI (CyanideState conn (RecipeSelectionScreen l)) = [ui]
                             ]
 
 listDrawElement :: Bool -> Types.Recipe -> B.Widget Name
-listDrawElement sel (Types.Recipe _ n _) = BC.hCenter $ B.str $ T.unpack n
+listDrawElement sel (Types.Recipe _ (Left n) _) = BC.hCenter $ B.str $ T.unpack n
+listDrawElement sel (Types.Recipe _ (Right i) _) = BC.hCenter $ B.str $ T.unpack $ "recipe for " `T.append` Types.ingredientName i

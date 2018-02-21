@@ -15,20 +15,33 @@ import Cyanide.Data.Ingredients
 import Cyanide.Data.IngredientClasses
 
 getRecipes :: DBConn -> IO [Recipe]
-getRecipes conn = P.query_ conn 
-        "SELECT recipes.id                      \
-       \      , recipes.name                    \
-       \      , recipes.instructions            \
-       \ FROM recipes                           \
+getRecipes conn = do
+    results <- P.query_ conn 
+        "SELECT recipes.id                       \
+       \      , recipes.name                     \
+       \      , recipes.instructions             \
+       \      , recipes.for_ingredient_id        \
+       \ FROM recipes                            \
        \ WHERE recipes.for_ingredient_id IS NULL \
        \ ORDER BY recipes.id ASC"
+    forM results $ fillInIngredient conn
+
+fillInIngredient :: DBConn -> (Int,Maybe T.Text,T.Text,Maybe Int) -> IO Recipe
+fillInIngredient conn (id,_,instr,Just ingredientId) = do
+    ingredient <- getIngredient conn ingredientId
+    return $ Recipe id (Right ingredient) instr
+fillInIngredient _ (id,Just name,instr,_) =
+    return $ Recipe id (Left name) instr
+fillInIngredient _ (id,Nothing,instr,Nothing) =
+    return $ Recipe id (Left "") instr
 
 getRecipesUsingIngredientClass :: DBConn -> T.Text -> IO [Recipe]
-getRecipesUsingIngredientClass conn c =
-    P.query conn 
+getRecipesUsingIngredientClass conn c = do
+    results <- P.query conn 
         "SELECT recipes.id                      \
        \      , recipes.name                    \
        \      , recipes.instructions            \
+       \      , recipes.for_ingredient_id       \
        \ FROM recipes                           \
        \ INNER JOIN ingredients_to_recipes      \
        \ ON recipes.id = ingredients_to_recipes.recipe_id \
@@ -36,18 +49,21 @@ getRecipesUsingIngredientClass conn c =
        \ ON ingredients_to_recipes.ingredient_class_id = ingredient_classes.id \
        \ WHERE ingredient_classes.name = ? \
        \ ORDER BY recipes.id ASC" (P.Only c)
+    forM results $ fillInIngredient conn
 
 getRecipesUsingIngredient :: DBConn -> Ingredient -> IO [Recipe]
-getRecipesUsingIngredient conn (Ingredient i _ _ _ _ _) =
-    P.query conn 
+getRecipesUsingIngredient conn (Ingredient i _ _ _ _ _) = do
+    results <- P.query conn 
         "SELECT recipes.id                      \
        \      , recipes.name                    \
        \      , recipes.instructions            \
+       \      , recipes.for_ingredient_id       \
        \ FROM recipes                           \
        \ INNER JOIN ingredients_to_recipes      \
        \ ON recipes.id = ingredients_to_recipes.recipe_id \
        \ WHERE ingredients_to_recipes.ingredient_id = ? \
        \ ORDER BY recipes.id ASC" (P.Only i)
+    forM results $ fillInIngredient conn
 
 getRecipeForIngredient :: DBConn -> Ingredient -> IO (Maybe Recipe)
 getRecipeForIngredient conn (Ingredient i _ _ _ _ _) = do
@@ -55,10 +71,13 @@ getRecipeForIngredient conn (Ingredient i _ _ _ _ _) = do
         "SELECT recipes.id                      \
        \      , recipes.name                    \
        \      , recipes.instructions            \
+       \      , recipes.for_ingredient_id       \
        \ FROM recipes                           \
        \ WHERE recipes.for_ingredient_id = ?" (P.Only i)
     case rs of
-        [r] -> return $ Just r
+        [r] -> do
+            recipe <- fillInIngredient conn r
+            return $ Just recipe
         _ -> return Nothing
 
 getGlassForRecipe :: DBConn -> Recipe -> IO (Maybe Glass)
@@ -99,17 +118,22 @@ getIngredientsForRecipe conn (Recipe i _ _) = do
 -- Create a new recipe with the given name, instructions, if it's for an
 -- ingredient and not a cocktail, and either an ingredient ID on the left or an
 -- ingredient class ID on the right
-newRecipe :: DBConn -> (T.Text,T.Text,Bool,[(Int,Int,T.Text,Either Int Int)]) -> IO ()
-newRecipe conn (name,instr,forAnIngredient,ingredients) = do
-    [P.Only (i :: Int)] <- P.query conn "INSERT INTO recipes (name,instructions,for_an_ingredient) VALUES (?,?,?) RETURNING id" (name,instr,forAnIngredient)
-    forM_ ingredients $ \(num,den,unit,eing) ->
-        case eing of
-            Left ingId -> do
-                P.execute conn "INSERT INTO ingredients_to_recipes (recipe_id,ingredient_id,amount_numer,amount_denom,unit) VALUES (?,?,?,?,?)" (i,ingId,num,den,unit)
+newRecipe :: DBConn -> (Maybe T.Text,T.Text,Maybe Ingredient,[IngredientListItem]) -> IO Recipe
+newRecipe conn (mName,instr,mIngr,ingredients) = do
+    [P.Only (recId :: Int)] <- P.query conn "INSERT INTO recipes (name,instructions,for_ingredient_id) VALUES (?,?,?) RETURNING id" (mName,instr,mIngr >>= Just . ingredientId)
+    forM_ ingredients $ \(IngredientListItem num den unit ingOrCla) ->
+        case ingOrCla of
+            Left ing -> do
+                P.execute conn "INSERT INTO ingredients_to_recipes (recipe_id,ingredient_id,amount_numer,amount_denom,unit) VALUES (?,?,?,?,?)" (recId,ingredientId ing,num,den,unit)
                 return ()
-            Right claId -> do
-                P.execute conn "INSERT INTO ingredients_to_recipes (recipe_id,ingredient_class_id,amount_numer,amount_denom,unit) VALUES (?,?,?,?,?)" (i,claId,num,den,unit)
+            Right ingCla -> do
+                P.execute conn "INSERT INTO ingredients_to_recipes (recipe_id,ingredient_class_id,amount_numer,amount_denom,unit) VALUES (?,?,?,?,?)" (recId,ingredientClassId ingCla,num,den,unit)
                 return ()
+    let recName = case (mIngr,mName) of
+                (Just i,_) -> Right i
+                (_,Just n) -> Left n
+                (Nothing,Nothing) -> Left ""
+    return $ Recipe recId recName instr
 
 deleteRecipe :: DBConn -> Recipe -> IO ()
 deleteRecipe conn (Recipe i _ _) = do

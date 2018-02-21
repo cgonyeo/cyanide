@@ -15,12 +15,18 @@ import qualified Brick.Focus as BF
 import Data.Monoid
 import Data.Maybe
 import Control.Monad.IO.Class
+import System.Environment
+import System.Process
+import System.Directory
+import qualified Data.ByteString.Lazy.Char8 as BSL
+import Data.Digest.Pure.SHA
 
 import Cyanide.UI.State
 import Cyanide.UI.Util
 import qualified Cyanide.UI.RecipeInputIngredientScreen as RecipeInputIngredient
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Ingredients as Ingredients
+import qualified Cyanide.Data.Recipes as Recipes
 import qualified Cyanide.Data.IngredientClasses as IngredientClasses
 import qualified Cyanide.Data.Postgres as Postgres
 
@@ -40,13 +46,13 @@ handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next Cya
 handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd gl il instr recipeFor mr f prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn prev
+            B.continue $ CyanideState conn (prev Nothing)
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
             in B.continue $ CyanideState conn $ scr { recipeInputFocusRing = newFocus }
 
-        Vty.EvKey (Vty.KChar 'i') [] -> do
+        Vty.EvKey (Vty.KChar 'a') [Vty.MMeta] -> do
             -- Construct the original list of ingredient options
             ics <- liftIO $ IngredientClasses.getIngredientClasses conn
             is <- liftIO $ Ingredients.getIngredients conn
@@ -61,6 +67,7 @@ handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd gl il instr recip
                 f = BF.focusRing [ RecipeInputIngredient.amountName
                                  , RecipeInputIngredient.unitName
                                  , RecipeInputIngredient.filterName
+                                 , RecipeInputIngredient.ingrListName
                                  ]
 
             -- Give a function for getting back here
@@ -72,14 +79,39 @@ handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd gl il instr recip
 
             B.continue $ CyanideState conn (RecipeInputIngredientScreen "TODO" amountEditor unitEditor filterEditor ingrListOrig ingList f getBack)
 
-        Vty.EvKey (Vty.KChar 'd') [] ->
+        Vty.EvKey (Vty.KChar 'i') [Vty.MMeta] -> do
+            editorEnv <- liftIO $ getEnv "EDITOR"
+            let editor = case editorEnv of
+                            "" -> "vim"
+                            e -> e
+                tmpDir = "/tmp"
+                hashOfInstructions = showDigest $ sha512 (BSL.pack $ T.unpack instr)
+                fileName = tmpDir ++ "/cyanide-" ++ take 8 hashOfInstructions ++ ".md"
+            liftIO $ writeFile fileName (T.unpack instr)
+            B.suspendAndResume $ do
+                callCommand $ editor ++ " " ++ fileName
+                newInstructions <- readFile fileName
+                removeFile fileName
+                return $ CyanideState conn $ scr { recipeInputInstructions = T.pack newInstructions }
+
+        Vty.EvKey (Vty.KChar 'd') [Vty.MMeta] ->
             if BF.focusGetCurrent f /= Just ingredientsName || length il == 0
                 then B.continue s
                 else let Just (i,_) = BL.listSelectedElement il
                          newList = BL.listRemove i il
                      in B.continue $ CyanideState conn $ scr { recipeInputIngredientList = newList }
 
-        --Vty.EvKey (Vty.KChar 'i') [Vty.MMeta] -> undefined
+        Vty.EvKey (Vty.KEnter) [] -> do
+            let name = getEditorLine nameEd
+                Just (_,g) = BL.listSelectedElement gl
+                ingredients = V.toList $ il^.(BL.listElementsL)
+            case mr of
+                Just oldRecipe ->
+                -- TODO
+                    B.continue s
+                Nothing -> do
+                    newRecipe <- liftIO $ Recipes.newRecipe conn (name,instr,recipeFor,ingredients)
+                    B.continue $ CyanideState conn $ prev (Just newRecipe)
 
         --Vty.EvKey (Vty.KEnter) [] -> do
         --    mIngredientName <- getAndCheckEditorName (isNothing mi)
@@ -140,36 +172,49 @@ drawUI (CyanideState conn (RecipeInputScreen nameEd gl il instr recipeFor mr f _
           glst = BF.withFocusRing f (BL.renderList drawListGlass) gl
           ilst = BF.withFocusRing f (BL.renderList drawListIngredient) il
 
-          prompt = case mr of
-                    Just r -> "How do you want to edit \"" `T.append` Types.recipeName r `T.append` "\"?"
-                    Nothing -> "What recipe do you want to create?"
+          prompt = case (mr,recipeFor) of
+                    -- We're editing an existing recipe
+                    (Just r,_) -> case Types.recipeName r of
+                                    -- It's a standalong recipe
+                                    Left n -> "How do you want to edit \"" `T.append` n `T.append` "\"?"
+                                    -- It's a recipe for an ingredient
+                                    Right i -> "How do you want to edit the recipe for \"" `T.append` Types.ingredientName i `T.append` "\"?"
+                    -- It's a new recipe for an ingredient
+                    (_,Just i) -> "What is the recipe for \"" `T.append` Types.ingredientName i `T.append` "\"?"
+                    -- It's a new standalone recipe
+                    (Nothing,Nothing) -> "What recipe do you want to create?"
         
           enterAction = case mr of
                     Just _ -> "Modify"
                     Nothing -> "Create"
 
-          recipeInfo =
-            B.vBox $ [ addRow 5 "Name" [ BB.border $ edt ]
-                     , addRow 5 "Glass" [ BB.borderWithLabel (B.txt "Glass") glst ]
-                     , addRow 5 "Ingredients" [ BB.borderWithLabel (B.txt "Ingredients") ilst ]
-                     , addRow 5 "Instructions" [ B.txt instr ]
-                     ]
+          recipeInfo = B.hBox
+                [ if isNothing recipeFor
+                    then B.hLimit 20 $
+                            B.vBox [ BB.borderWithLabel (B.txt "Name") edt
+                                   , BB.borderWithLabel (B.txt "Glass") glst
+                                   ]
+                    else B.emptyWidget
+                , B.hLimit 30 $ BB.borderWithLabel (B.txt "Ingredients") ilst
+                , BB.borderWithLabel (B.txt "Instructions") (B.padBottom (B.Max) $ B.padRight (B.Max) (B.txt $ if instr == "" then " " else instr))
+                ]
 
           instructionsLeft =
                 B.vBox [ B.txt $ "Enter - " `T.append` enterAction
                        , B.txt "Tab   - Change focus"
-                       , B.txt "Alt-i - Edit instructions"
                        , B.txt "Esc   - Previous screen"
                        ]
           instructionsRight =
             B.padLeft (B.Pad 2) $
                 B.vBox  $ 
                     if BF.focusGetCurrent f == Just ingredientsName
-                        then
-                            [ B.txt "i - Add ingredient"
-                            , B.txt "d - Delete ingredient"
-                            ]
-                        else []
+                        then [ B.txt "Alt-i - Edit instructions"
+                             , B.txt "Alt-a - Add ingredient"
+                             , B.txt "Alt-d - Delete ingredient"
+                             ]
+                        else [ B.txt "Alt-i - Edit instructions"
+                             , B.txt "Alt-a - Add ingredient"
+                             ]
           instructions = B.padLeft (B.Pad 16) $ B.hBox [ instructionsLeft, instructionsRight ]
 
           ui = BC.center
@@ -179,7 +224,7 @@ drawUI (CyanideState conn (RecipeInputScreen nameEd gl il instr recipeFor mr f _
                             , BC.hCenter $ B.txt $ case recipeFor of
                                                        (Just r) -> "This is a recipe for: " `T.append` (Types.ingredientName r)
                                                        Nothing -> " "
-                            , BC.hCenter $ BB.border $ recipeInfo
+                            , recipeInfo
                             , instructions
                             ]
 

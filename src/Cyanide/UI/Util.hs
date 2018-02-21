@@ -4,6 +4,7 @@ module Cyanide.UI.Util where
 
 import qualified Brick as B
 import qualified Brick.Widgets.Center as BC
+import qualified Brick.Widgets.Edit as BE
 import qualified Data.Text as T
 
 import Cyanide.UI.State
@@ -48,3 +49,10 @@ displayAmt num den unit = (T.pack $ show num) `T.append` "/" `T.append` (T.pack 
 renderInstructions :: [(T.Text,T.Text)] -> B.Widget Name
 renderInstructions lst = BC.hCenter $ B.vBox $ map (\(key,label) -> B.hBox [ formatText JustifyRight maxInput key, B.txt " - ", B.txt label]) lst
     where maxInput = maximum $ map (T.length . fst) lst
+
+getEditorLine :: BE.Editor T.Text n -> Maybe T.Text
+getEditorLine ed = do
+    let lines = BE.getEditContents ed
+    if length lines /= 1
+        then Nothing
+        else Just $ lines !! 0

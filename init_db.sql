@@ -35,7 +35,7 @@ CREATE TABLE "purchases" (
 
 CREATE TABLE "recipes" (
     id                SERIAL         NOT NULL,
-    name              VARCHAR(1024)  NOT NULL,
+    name              VARCHAR(1024),
     instructions      VARCHAR(10240) NOT NULL,
     for_ingredient_id INTEGER UNIQUE,
     PRIMARY KEY (id),
