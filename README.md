@@ -9,6 +9,8 @@ ingredients and recipes for a home bar. It can track current inventory and past
 purchases for ingredients, show you what recipes you can make with your current
 inventory, and filter recipes by spirit type, glass, and a search string.
 
+![Screenshot of the homepage](screenshots/2018-02-22_20:22:45_3200x1800_scrot.png)
+
 ## Acquiring cyanide
 
 Cyanide can be downloaded from the [releases page on GitHub][releases]:
