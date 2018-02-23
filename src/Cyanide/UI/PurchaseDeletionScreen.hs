@@ -23,27 +23,24 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (PurchaseDeletionScreen i ps rs mr l f)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn (PurchaseDeletionScreen p i prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn (IngredientDetailScreen i ps rs mr l f)
+            B.continue $ CyanideState conn $ prev False
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn (IngredientDetailScreen i ps rs mr l f)
+            B.continue $ CyanideState conn $ prev False
 
         Vty.EvKey (Vty.KChar 'y') [] -> do
-            let Just (j,purchase) = BL.listSelectedElement ps
-                newList = BL.listRemove j ps
-            liftIO $ Purchases.deletePurchase conn purchase
-            B.continue $ CyanideState conn (IngredientDetailScreen i newList rs mr l f)
+            liftIO $ Purchases.deletePurchase conn p
+            B.continue $ CyanideState conn $ prev True
 
         _ -> B.continue s
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (PurchaseDeletionScreen i ps _ _ _ _)) = [ui]
-    where Just (_,(Types.Purchase t l p)) = BL.listSelectedElement ps
-          ui = BC.center
+drawUI (CyanideState conn (PurchaseDeletionScreen (Types.Purchase t l p) i _)) = [ui]
+    where ui = BC.center
                $ B.hLimit 80
                $ B.vLimit 25 $ B.vBox
                             [ BC.hCenter $ B.txt $ "Are you sure you want to delete the following purchase?"
@@ -52,10 +49,10 @@ drawUI (CyanideState conn (PurchaseDeletionScreen i ps _ _ _ _)) = [ui]
                                 $ BB.borderWithLabel (B.txt "Purchase")
                                 $ B.padAll 1
                                 $ B.vBox
-                                     [ addRow 12 "Name" [B.txt $ Types.ingredientName i]
-                                     , addRow 12 "Timestamp" [B.txt $ T.pack $ show t]
-                                     , addRow 12 "Location" [B.txt l]
-                                     , addRow 12 "Amount" [B.txt $ formatMoney p]
+                                     [ addRow 8 "Name" [B.txt $ Types.ingredientName i]
+                                     , addRow 8 "Date" [B.txt $ T.pack $ show t]
+                                     , addRow 8 "Location" [B.txt l]
+                                     , addRow 8 "Amount" [B.txt $ formatMoney p]
                                      ]
                             , renderInstructions [ ("y","Yes")
                                                  , ("n","No")

@@ -7,7 +7,7 @@
 Cyanide is an ncurses-style console application that tracks and manages
 ingredients and recipes for a home bar. It can track current inventory and past
 purchases for ingredients, show you what recipes you can make with your current
-inventory, and filter recipes by spirit type, glass, and more.
+inventory, and filter recipes by spirit type, glass, and a search string.
 
 ## Acquiring cyanide
 
@@ -29,7 +29,7 @@ stack install
 ## Running cyanide
 
 Cyanide was developed, tested, and is actively used on Linux. It's possible it
-will run without issue on MacOS or Windows.
+will run without issue on MacOS or Windows, but this hasn't been attempted.
 
 Cyanide requires access to a working PostgreSQL database, as that's how it
 stores information. Database credentials are stored at
@@ -53,5 +53,5 @@ if data is being modified the changes may not appear across all instances.
 
 GPLv3
 
-[releases]: https://example.com
+[releases]: https://github.com/dgonyeo/cyanide/releases
 [stack]: https://docs.haskellstack.org/en/stable/README/

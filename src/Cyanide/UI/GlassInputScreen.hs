@@ -69,7 +69,7 @@ drawUI (CyanideState conn (GlassInputScreen e mg l)) = [ui]
                             [ BC.hCenter $ B.txt prompt
                             , BC.hCenter $ B.hLimit 24 $ B.padAll 1 $ BB.border $ BE.renderEditor drawEdit True e
                             , renderInstructions [ ("Enter",enterAction)
-                                                 , ("Esc","Previous screen")
+                                                 , ("Esc","Cancel")
                                                  ]
                             ]
 

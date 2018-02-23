@@ -35,10 +35,10 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(IngredientInputScreen ed cl ul f si mi pl)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn scr@(IngredientInputScreen ed cl ul f si mi prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn (IngredientSelectionScreen pl)
+            B.continue $ CyanideState conn $ prev Nothing
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
@@ -57,18 +57,14 @@ handleEvent s@(CyanideState conn scr@(IngredientInputScreen ed cl ul f si mi pl)
                         Just (_,unit) = BL.listSelectedElement ul
 
                     newIngredient <- liftIO $ Ingredients.updateIngredient conn (Types.ingredientId oldIng) (n,iclass,unit,si)
-                    let newList = BL.listModify (\_ -> newIngredient) pl
-                        newList' = BL.listMoveTo (length newList) newList
-                    B.continue $ CyanideState conn (IngredientSelectionScreen newList')
+                    B.continue $ CyanideState conn $ prev (Just (newIngredient,iclass))
                 -- We're creating a new ingredient
                 (Nothing,Just n) -> do
                     let Just (_,iclass) = BL.listSelectedElement cl
                         Just (_,unit) = BL.listSelectedElement ul
 
                     newIngredient <- liftIO $ Ingredients.newIngredient conn (n,iclass,unit,si)
-                    let newList = BL.listInsert (length pl) newIngredient pl
-                        newList' = BL.listMoveTo (length newList) newList
-                    B.continue $ CyanideState conn (IngredientSelectionScreen newList')
+                    B.continue $ CyanideState conn $ prev (Just (newIngredient,iclass))
 
         ev -> if BF.focusGetCurrent (f) == Just editorName then do
                     newEdit <- BE.handleEditorEvent ev ed
@@ -97,7 +93,7 @@ handleEvent s@(CyanideState conn scr@(IngredientInputScreen ed cl ul f si mi pl)
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (IngredientInputScreen e cl ul f s mi pl)) = [ui]
+drawUI (CyanideState conn (IngredientInputScreen e cl ul f s mi _)) = [ui]
     where edt = BF.withFocusRing f (BE.renderEditor drawEdit) e
           clst = BF.withFocusRing f (BL.renderList drawListClass) cl
           ulst = BF.withFocusRing f (BL.renderList drawListUnit) ul
@@ -132,15 +128,17 @@ drawUI (CyanideState conn (IngredientInputScreen e cl ul f s mi pl)) = [ui]
                             , renderInstructions [ ("Enter",enterAction)
                                                  , ("Alt-c","Toggle cocktail availability")
                                                  , ("Tab","Change focus")
-                                                 , ("Esc","Previous screen")
+                                                 , ("Esc","Cancel")
                                                  ]
                             ]
 
 drawEdit = B.txt . T.unlines
 
-drawListClass:: Bool -> Types.IngredientClass -> B.Widget Name
-drawListClass False (Types.IngredientClass _ n) = BC.hCenter $ B.txt n
-drawListClass True (Types.IngredientClass _ n) = BC.hCenter $ B.txt $ "* " `T.append` n `T.append` " *"
+drawListClass:: Bool -> Maybe Types.IngredientClass -> B.Widget Name
+drawListClass False Nothing = BC.hCenter $ B.txt " "
+drawListClass True Nothing = BC.hCenter $ B.txt "*"
+drawListClass False (Just (Types.IngredientClass _ n)) = BC.hCenter $ B.txt n
+drawListClass True (Just (Types.IngredientClass _ n)) = BC.hCenter $ B.txt $ "* " `T.append` n `T.append` " *"
 
 drawListUnit :: Bool -> T.Text -> B.Widget Name
 drawListUnit False "" = BC.hCenter $ B.txt " "

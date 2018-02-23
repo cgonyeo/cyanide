@@ -24,44 +24,41 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (IngredientDeletionScreen usedIn mr l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn (IngredientDeletionScreen ingr usedIn mr prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn (IngredientSelectionScreen l)
+            B.continue $ CyanideState conn $ prev False
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn (IngredientSelectionScreen l)
+            B.continue $ CyanideState conn $ prev False
 
         Vty.EvKey (Vty.KChar 'y') [] ->
             case (length usedIn,mr) of
-                (0,Nothing) -> deleteIngredient l
+                (0,Nothing) -> deleteIngredient
                 (0,Just r) -> do liftIO $ Recipes.deleteRecipe conn r
-                                 deleteIngredient l
+                                 deleteIngredient
                 _ -> B.continue s
 
         _ -> B.continue s
-    where deleteIngredient l = do
-            let Just (i,ingr) = BL.listSelectedElement l
-                newList = BL.listRemove i l
+    where deleteIngredient = do
             liftIO $ Ingredients.deleteIngredient conn ingr
-            B.continue $ CyanideState conn (IngredientSelectionScreen newList)
+            B.continue $ CyanideState conn $ prev True
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (IngredientDeletionScreen usedIn mr l)) = [ui]
-    where Just (_,(Types.Ingredient _ n _ _ _ _)) = BL.listSelectedElement l
-          uiContent =
+drawUI (CyanideState conn (IngredientDeletionScreen ingr usedIn mr _)) = [ui]
+    where uiContent =
             case (length usedIn,mr) of
                 (0,Nothing) -> 
                     B.vBox [ BC.hCenter $ B.txt "Are you sure you want to delete the following ingredient?"
-                           , BC.hCenter $ B.padAll 1 $ B.txt n
+                           , BC.hCenter $ B.padAll 1 $ B.txt (Types.ingredientName ingr)
                            , renderInstructions [ ("y","Yes")
                                                 , ("n","No")
                                                 ]
                            ]
                 (0,Just r) ->
                     B.vBox [ BC.hCenter $ B.txt "Are you sure you want to delete the following ingredient?"
-                           , BC.hCenter $ B.padAll 1 $ B.txt n
+                           , BC.hCenter $ B.padAll 1 $ B.txt (Types.ingredientName ingr)
                            , BC.hCenter $ B.padBottom (B.Pad 1) $ B.txt "This will delete the recipe for this ingredient too!"
                            , renderInstructions [ ("y","Yes")
                                                 , ("n","No")
@@ -69,7 +66,7 @@ drawUI (CyanideState conn (IngredientDeletionScreen usedIn mr l)) = [ui]
                            ]
                 (_,_) ->
                     B.vBox [ BC.hCenter $ B.txt "The following ingredient cannot be deleted, it's still used in recipes!"
-                           , BC.hCenter $ B.padAll 1 $ B.txt n
+                           , BC.hCenter $ B.padAll 1 $ B.txt (Types.ingredientName ingr)
                            , renderInstructions [ ("Esc","Previous screen")
                                                 ]
                            ]

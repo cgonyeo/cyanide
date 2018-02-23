@@ -10,7 +10,7 @@ import Cyanide.Data.Postgres
 
 getIngredientClasses :: DBConn -> IO [IngredientClass]
 getIngredientClasses conn = P.query_ conn
-            "SELECT id, name FROM ingredient_classes ORDER BY id ASC"
+            "SELECT id, name FROM ingredient_classes ORDER BY name ASC"
 
 getIngredientClass :: DBConn -> Int -> IO IngredientClass
 getIngredientClass conn classId = do

@@ -2,18 +2,22 @@
 
 module Cyanide.UI.MainSelectionScreen where
 
-import qualified Brick as B
-import qualified Brick.Widgets.List as BL
 import qualified Graphics.Vty as Vty
 import qualified Data.Text as T
 import qualified Data.Vector as V
+import qualified Brick as B
 import qualified Brick.Widgets.Center as BC
 import qualified Brick.Widgets.Border as BB
+import qualified Brick.Widgets.Edit as BE
+import qualified Brick.Widgets.List as BL
+import qualified Brick.Focus as BF
 import Data.Monoid
 import Control.Monad.IO.Class
 
 import Cyanide.UI.State
 import Cyanide.UI.Util
+import qualified Cyanide.UI.RecipeSelectionScreen as RecipeSelection
+import qualified Cyanide.UI.RecipeSelectionFilterScreen as RecipeSelectionFilter
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Recipes as Recipes
 import qualified Cyanide.Data.Glasses as Glasses
@@ -22,9 +26,7 @@ import qualified Cyanide.Data.Ingredients as Ingredients
 import qualified Cyanide.Data.Postgres as Postgres
 
 getRecipeSelectionScreen :: Postgres.DBConn -> IO CyanideScreen
-getRecipeSelectionScreen conn = do
-    recipes <- Recipes.getRecipes conn
-    return $ RecipeSelectionScreen $ BL.list "RecipeSelectionScreen" (V.fromList recipes) 1
+getRecipeSelectionScreen conn = RecipeSelection.newRecipeSelectionScreen conn
 
 getGlassSelectionScreen :: Postgres.DBConn -> IO CyanideScreen
 getGlassSelectionScreen conn = do
@@ -73,13 +75,45 @@ drawUI (CyanideState conn MainSelectionScreen) =
     [ BC.center
         $ B.hLimit 80
         $ B.vLimit 25
-        $ B.vBox [ BC.hCenter $ B.txt "Cyanide: home bar management system"
-                 , BC.hCenter $ B.hLimit 34 BB.hBorder
-                 , renderInstructions [ ("r","Recipes")
-                                      , ("i","Ingredients")
-                                      , ("g","Glasses")
-                                      , ("c","Ingredient classes")
-                                      , ("Esc","Exit")
-                                      ]
+        $ B.hBox [ bottle1
+                 , B.txt "   "
+                 , B.hLimit 34
+                        $ B.vBox [ BC.hCenter $ B.txt "Cyanide: home bar management system"
+                                 , BC.hCenter $ BB.hBorder
+                                 , renderInstructions [ ("r","Recipes")
+                                                      , ("i","Ingredients")
+                                                      , ("g","Glasses")
+                                                      , ("c","Ingredient classes")
+                                                      , ("Esc","Exit")
+                                                      ]
+                                 ]
+                 , B.txt "   "
+                 , bottle1
                  ]
     ]
+  where bottle1 = B.vBox
+            [ B.txt "  [~]  "
+            , B.txt "  |=|  "
+            , B.txt ".-' '-."
+            , B.txt "|-----|"
+            , B.txt "| ~~~ |"
+            , B.txt "| ~~~ |"
+            , B.txt "| XXX |"
+            , B.txt "|-----|"
+            , B.txt "'-----'"
+            ]
+        bottle2 = B.vBox
+            [ B.txt "  _                 "
+            , B.txt " {_}                "
+            , B.txt " |(|                "
+            , B.txt " |=|                "
+            , B.txt "/   \\               "
+            , B.txt "|.--|               "
+            , B.txt "||  |               "
+            , B.txt "||  |    .    ' .   "
+            , B.txt "|'--|  '     \\~~~/  "
+            , B.txt "'-=-' \\~~~/   \\_/   "
+            , B.txt "       \\_/     Y    "
+            , B.txt "        Y     _|_   "
+            , B.txt "       _|_          "
+            ]

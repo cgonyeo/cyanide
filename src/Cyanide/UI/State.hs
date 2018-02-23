@@ -33,65 +33,75 @@ data CyanideScreen
         }
     | IngredientInputScreen
         { ingredientInputName           :: BE.Editor T.Text Name
-        , ingredientInputClass          :: BL.List Name Types.IngredientClass
+        , ingredientInputClass          :: BL.List Name (Maybe Types.IngredientClass)
         , ingredientInputUnit           :: BL.List Name T.Text
         , ingredientInputFocusRing      :: BF.FocusRing Name
         , ingredientInputNotForRecipes  :: Bool
         , ingredientInputBeingModified  :: Maybe Types.Ingredient
-        , ingredientInputPreviousScreen :: BL.List Name Types.Ingredient
+        , ingredientInputPreviousScreen :: Maybe (Types.Ingredient,Maybe Types.IngredientClass) -> CyanideScreen
         }
     | IngredientDetailScreen
         { ingredient                     :: Types.Ingredient
+        , ingredientClass                :: Maybe Types.IngredientClass
         , ingredientPurchases            :: BL.List Name Types.Purchase
         , ingredientUsedIn               :: BL.List Name Types.Recipe
         , ingredientRecipe               :: Maybe Types.Recipe
-        , ingredientDetailPreviousScreen :: BL.List Name Types.Ingredient
         , ingredientFocusRing            :: BF.FocusRing Name
+        , ingredientDetailPreviousScreen :: Maybe Types.Ingredient -> CyanideScreen
         }
     | IngredientDeletionScreen
-        { ingredientDeletionUsedIn               :: [Types.Recipe]
+        { ingredientDeletionIngredient           :: Types.Ingredient
+        , ingredientDeletionUsedIn               :: [Types.Recipe]
         , ingredientDeletionRecipe               :: Maybe Types.Recipe
-        , ingredientDeletionDetailPreviousScreen :: BL.List Name Types.Ingredient
+        , ingredientDeletionDetailPreviousScreen :: Bool -> CyanideScreen
         }
     | PurchaseDeletionScreen
-        { purchaseDeletionIngredient           :: Types.Ingredient
-        , purchaseDeletionPurchases            :: BL.List Name Types.Purchase
-        , purchaseDeletionUsedIn               :: BL.List Name Types.Recipe
-        , purchaseDeletionRecipe               :: Maybe Types.Recipe
-        , purchaseDeletionDetailPreviousScreen :: BL.List Name Types.Ingredient
-        , purchaseDeletionFocusRing            :: BF.FocusRing Name
+        { purchaseDeletionPurchase             :: Types.Purchase
+        , purchaseDeletionIngredient           :: Types.Ingredient
+        , purchaseDeletionDetailPreviousScreen :: Bool -> CyanideScreen
         }
     | PurchaseCreationScreen
-        -- Fields for the IngredientDetailScreen preceeding this
-        { purchaseCreationIngredient           :: Types.Ingredient
-        , purchaseCreationPurchases            :: BL.List Name Types.Purchase
-        , purchaseCreationUsedIn               :: BL.List Name Types.Recipe
-        , purchaseCreationRecipe               :: Maybe Types.Recipe
-        , purchaseCreationDetailPreviousScreen :: BL.List Name Types.Ingredient
-        , purchaseCreationFocusRing            :: BF.FocusRing Name
-        -- Fields for the PurchaseCreationScreen
-        , purchaseCreationEditLocation         :: BE.Editor T.Text Name
-        , purchaseCreationEditCost             :: BE.Editor T.Text Name
-        , purchaseCreationEditFocusRing        :: BF.FocusRing Name
+        { purchaseCreationIngredient     :: Types.Ingredient
+        , purchaseCreationEditLocation   :: BE.Editor T.Text Name
+        , purchaseCreationEditCost       :: BE.Editor T.Text Name
+        , purchaseCreationEditFocusRing  :: BF.FocusRing Name
+        , purchaseCreationPreviousScreen :: Maybe (Types.Ingredient,Types.Purchase) -> CyanideScreen
         }
     | RecipeSelectionScreen
-        { recipeUIList :: BL.List Name Types.Recipe
+        { recipeList                 :: BL.List Name Types.Recipe
+        , recipeListOrig             :: [Types.Recipe]
+        , recipeListRecipesToICs     :: [(Int,Int)]
+        , recipeListRecipesToGlasses :: [(Int,Int)]
+        , recipeListRecipesToAvail   :: [(Int,Bool)]
+        , recipeListSearch           :: BE.Editor T.Text Name
+        , recipeListFilter           :: RecipeListFilter
+        , recipeListFocusRing        :: BF.FocusRing Name
+        }
+    | RecipeSelectionFilterScreen
+        { recipeFilter               :: RecipeListFilter
+        , recipeFilterFocusRing      :: BF.FocusRing Name
+        , recipeFilterPreviousScreen :: Maybe RecipeListFilter -> IO CyanideScreen
         }
     | RecipeDetailScreen
         { recipeInstructions   :: Types.Recipe
         , recipeGlass          :: Maybe Types.Glass
         , recipeIngredientList :: [Types.IngredientListItem]
-        , recipePreviousScreen :: CyanideScreen
+        , recipePreviousScreen :: Maybe (Types.Recipe,Maybe Types.Glass,[Types.IngredientListItem]) -> CyanideScreen
+        }
+    | RecipeDeletionScreen
+        { recipeDeletionRecipe         :: Types.Recipe
+        , recipeDeletionPrevioudScreen :: Bool -> CyanideScreen
         }
     | RecipeInputScreen
         { recipeInputName           :: BE.Editor T.Text Name
-        , recipeInputGlass          :: BL.List Name Types.Glass
+        , recipeInputGarnish        :: BE.Editor T.Text Name
+        , recipeInputGlass          :: BL.List Name (Maybe Types.Glass)
         , recipeInputIngredientList :: BL.List Name Types.IngredientListItem
         , recipeInputInstructions   :: T.Text
         , recipeInputRecipeFor      :: Maybe Types.Ingredient
         , recipeInputBeingModified  :: Maybe Types.Recipe
         , recipeInputFocusRing      :: BF.FocusRing Name
-        , recipeInputPreviousScreen :: Maybe Types.Recipe -> CyanideScreen
+        , recipeInputPreviousScreen :: Maybe (Types.Recipe,Maybe Types.Glass,[Types.IngredientListItem]) -> IO CyanideScreen
         }
     | RecipeInputIngredientScreen
         { recipeInputIngredientRecipeName    :: T.Text
@@ -121,3 +131,9 @@ data RecipeInputIngrListItem = IngredientListItem Int T.Text
 getListItemName :: RecipeInputIngrListItem -> T.Text
 getListItemName (IngredientListItem _ n) = n
 getListItemName (IngredientClassListItem _ n) = n
+
+data RecipeListFilter = RecipeListFilter
+        { onlyWithAvailIngredients :: Bool
+        , limitToIngredientClass   :: BL.List Name (Maybe Types.IngredientClass)
+        , limitToGlass             :: BL.List Name (Maybe Types.Glass)
+        }

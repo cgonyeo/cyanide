@@ -27,11 +27,15 @@ import qualified Cyanide.UI.RecipeInputIngredientScreen as RecipeInputIngredient
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Ingredients as Ingredients
 import qualified Cyanide.Data.Recipes as Recipes
+import qualified Cyanide.Data.Glasses as Glasses
 import qualified Cyanide.Data.IngredientClasses as IngredientClasses
 import qualified Cyanide.Data.Postgres as Postgres
 
 recipeName :: Name
 recipeName = "RecipeCreationName"
+
+garnishName :: Name
+garnishName = "RecipeCreationGarnish"
 
 glassName :: Name
 glassName = "RecipeCreationGlassList"
@@ -39,14 +43,45 @@ glassName = "RecipeCreationGlassList"
 ingredientsName :: Name
 ingredientsName = "RecipeCreationIngredientList"
 
+newRecipeInputScreen :: Postgres.DBConn -> Maybe Types.Glass -> [Types.IngredientListItem] -> Maybe Types.Ingredient -> Maybe Types.Recipe -> (Maybe (Types.Recipe,Maybe Types.Glass,[Types.IngredientListItem]) -> IO CyanideScreen) -> IO CyanideScreen
+newRecipeInputScreen conn mGlass ingrList recipeFor mRecipeBeingModified goBack = do
+    glasses <- liftIO $ Glasses.getGlasses conn
+    let mGlassList = [Nothing] ++ map Just glasses
+        glassIndex = getGlassIndex mGlass (zip [0..] mGlassList)
+
+        (name,garnish,instructions) =
+            case mRecipeBeingModified of
+                Just (Types.Recipe _ (Left n) g instr) -> (n,g,instr)
+                Just (Types.Recipe _ _ g instr) -> ("",g,instr)
+                _ -> ("","","")
+
+
+        nameEd = BE.editor recipeName (Just 1) name
+        garnishEd = BE.editor garnishName (Just 1) garnish
+        glist = BL.listMoveTo glassIndex $ BL.list glassName (V.fromList mGlassList) 1
+        ilist = BL.list ingredientsName (V.fromList ingrList) 1
+        f = case recipeFor of
+                Just _ -> BF.focusRing [ ingredientsName]
+                Nothing -> BF.focusRing [ recipeName
+                                        , garnishName
+                                        , glassName
+                                        , ingredientsName
+                                        ]
+    return $ RecipeInputScreen nameEd garnishEd glist ilist instructions recipeFor mRecipeBeingModified f goBack
+
+  where getGlassIndex :: Eq a => a -> [(Int,a)] -> Int
+        getGlassIndex _ [] = 0
+        getGlassIndex g ((i,h):t) = if g == h then i else getGlassIndex g t
+
 attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd gl il instr recipeFor mr f prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd garnishEd gl il instr recipeFor mr f prev)) (B.VtyEvent e) =
     case e of
-        Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn (prev Nothing)
+        Vty.EvKey (Vty.KEsc) [] -> do
+            newScr <- liftIO $ prev Nothing
+            B.continue $ CyanideState conn newScr
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
@@ -69,6 +104,18 @@ handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd gl il instr recip
                                  , RecipeInputIngredient.filterName
                                  , RecipeInputIngredient.ingrListName
                                  ]
+                name = case (mr,recipeFor) of
+                          -- We're editing an existing recipe
+                          (Just r,_) -> case Types.recipeName r of
+                                          -- It's a standalone recipe
+                                          Left n -> "\"" `T.append` n `T.append` "\""
+                                          -- It's a recipe for an ingredient
+                                          Right i -> "the recipe for \"" `T.append` Types.ingredientName i `T.append` "\""
+                          -- It's a new recipe for an ingredient
+                          (_,Just i) -> "the recipe for \"" `T.append` Types.ingredientName i `T.append` "\""
+                          -- It's a new standalone recipe
+                          (Nothing,Nothing) -> (\mn -> if isJust mn then "\"" `T.append` fromJust mn `T.append` "\"" else "\"\"") $ getEditorLine nameEd
+
 
             -- Give a function for getting back here
                 getBack = (\mil -> case mil of
@@ -77,7 +124,7 @@ handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd gl il instr recip
                                         in scr { recipeInputIngredientList = newList }
                                     Nothing -> scr)
 
-            B.continue $ CyanideState conn (RecipeInputIngredientScreen "TODO" amountEditor unitEditor filterEditor ingrListOrig ingList f getBack)
+            B.continue $ CyanideState conn (RecipeInputIngredientScreen name amountEditor unitEditor filterEditor ingrListOrig ingList f getBack)
 
         Vty.EvKey (Vty.KChar 'i') [Vty.MMeta] -> do
             editorEnv <- liftIO $ getEnv "EDITOR"
@@ -103,42 +150,27 @@ handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd gl il instr recip
 
         Vty.EvKey (Vty.KEnter) [] -> do
             let name = getEditorLine nameEd
-                Just (_,g) = BL.listSelectedElement gl
+                garnish = case getEditorLine garnishEd of
+                                Nothing -> ""
+                                Just t -> t
+                Just (_,mGlass) = BL.listSelectedElement gl
                 ingredients = V.toList $ il^.(BL.listElementsL)
             case mr of
-                Just oldRecipe ->
-                -- TODO
-                    B.continue s
+                Just oldRecipe -> do
+                    newRecipe <- liftIO $ Recipes.updateRecipe conn (Types.recipeId oldRecipe) (name,garnish,instr,mGlass,recipeFor,ingredients)
+                    newScr <- liftIO $ prev (Just (newRecipe,mGlass,ingredients))
+                    B.continue $ CyanideState conn newScr
                 Nothing -> do
-                    newRecipe <- liftIO $ Recipes.newRecipe conn (name,instr,recipeFor,ingredients)
-                    B.continue $ CyanideState conn $ prev (Just newRecipe)
-
-        --Vty.EvKey (Vty.KEnter) [] -> do
-        --    mIngredientName <- getAndCheckEditorName (isNothing mi)
-        --    case (mi,mIngredientName) of
-        --        (_,Nothing) -> B.continue s
-        --        -- We're updating an existing ingredient
-        --        (Just oldIng,Just n) -> do
-        --            let Just (_,iclass) = BL.listSelectedElement cl
-        --                Just (_,unit) = BL.listSelectedElement ul
-
-        --            newIngredient <- liftIO $ Ingredients.updateIngredient conn (Types.ingredientId oldIng) (n,iclass,unit,si)
-        --            let newList = BL.listModify (\_ -> newIngredient) pl
-        --                newList' = BL.listMoveTo (length newList) newList
-        --            B.continue $ CyanideState conn (IngredientSelectionScreen newList')
-        --        -- We're creating a new ingredient
-        --        (Nothing,Just n) -> do
-        --            let Just (_,iclass) = BL.listSelectedElement cl
-        --                Just (_,unit) = BL.listSelectedElement ul
-
-        --            newIngredient <- liftIO $ Ingredients.newIngredient conn (n,iclass,unit,si)
-        --            let newList = BL.listInsert (length pl) newIngredient pl
-        --                newList' = BL.listMoveTo (length newList) newList
-        --            B.continue $ CyanideState conn (IngredientSelectionScreen newList')
+                    newRecipe <- liftIO $ Recipes.newRecipe conn (name,garnish,instr,mGlass,recipeFor,ingredients)
+                    newScr <- liftIO $ prev (Just (newRecipe,mGlass,ingredients))
+                    B.continue $ CyanideState conn newScr
 
         ev -> if BF.focusGetCurrent (f) == Just recipeName then do
                     newEdit <- BE.handleEditorEvent ev nameEd
                     B.continue $ CyanideState conn $ scr { recipeInputName = newEdit }
+              else if BF.focusGetCurrent (f) == Just garnishName then do
+                    newEdit <- BE.handleEditorEvent ev garnishEd
+                    B.continue $ CyanideState conn $ scr { recipeInputGarnish = newEdit }
               else if BF.focusGetCurrent (f) == Just glassName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev gl
                     B.continue $ CyanideState conn $ scr { recipeInputGlass = newList }
@@ -151,31 +183,20 @@ handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd gl il instr recip
             Types.ingredientName i
         ingredientListItemToName (Types.IngredientListItem _ _ _ (Right ic)) =
             Types.ingredientClassName ic
-  --where getAndCheckEditorName mustBeUnique = do
-  --          let newIngredientNames = BE.getEditContents ed
-  --          if length newIngredientNames /= 1
-  --              then return Nothing
-  --              else do
-  --                  ingredients <- liftIO $ Ingredients.getIngredients conn
-  --                  let newIngredientName = newIngredientNames !! 0
-  --                  if not mustBeUnique
-  --                      then return $ Just newIngredientName
-  --                      else case filter (\i -> Types.ingredientName i == newIngredientName) ingredients of
-  --                              [] -> return $ Just newIngredientName
-  --                              _ -> return Nothing
 
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (RecipeInputScreen nameEd gl il instr recipeFor mr f _)) = [ui]
-    where edt = BF.withFocusRing f (BE.renderEditor drawEdit) nameEd
+drawUI (CyanideState conn (RecipeInputScreen nameEd garnishEd gl il instr recipeFor mr f _)) = [ui]
+    where nameEdRndrd = BF.withFocusRing f (BE.renderEditor drawEdit) nameEd
+          garnishEdRndrd = BF.withFocusRing f (BE.renderEditor drawEdit) garnishEd
           glst = BF.withFocusRing f (BL.renderList drawListGlass) gl
           ilst = BF.withFocusRing f (BL.renderList drawListIngredient) il
 
           prompt = case (mr,recipeFor) of
                     -- We're editing an existing recipe
                     (Just r,_) -> case Types.recipeName r of
-                                    -- It's a standalong recipe
+                                    -- It's a standalone recipe
                                     Left n -> "How do you want to edit \"" `T.append` n `T.append` "\"?"
                                     -- It's a recipe for an ingredient
                                     Right i -> "How do you want to edit the recipe for \"" `T.append` Types.ingredientName i `T.append` "\"?"
@@ -191,18 +212,19 @@ drawUI (CyanideState conn (RecipeInputScreen nameEd gl il instr recipeFor mr f _
           recipeInfo = B.hBox
                 [ if isNothing recipeFor
                     then B.hLimit 20 $
-                            B.vBox [ BB.borderWithLabel (B.txt "Name") edt
+                            B.vBox [ BB.borderWithLabel (B.txt "Name") nameEdRndrd
+                                   , BB.borderWithLabel (B.txt "Garnish") garnishEdRndrd
                                    , BB.borderWithLabel (B.txt "Glass") glst
                                    ]
                     else B.emptyWidget
                 , B.hLimit 30 $ BB.borderWithLabel (B.txt "Ingredients") ilst
-                , BB.borderWithLabel (B.txt "Instructions") (B.padBottom (B.Max) $ B.padRight (B.Max) (B.txt $ if instr == "" then " " else instr))
+                , BB.borderWithLabel (B.txt "Instructions") (B.padBottom (B.Max) $ B.padRight (B.Max) (B.txtWrap $ if instr == "" then " " else instr))
                 ]
 
           instructionsLeft =
                 B.vBox [ B.txt $ "Enter - " `T.append` enterAction
-                       , B.txt "Tab   - Change focus"
-                       , B.txt "Esc   - Previous screen"
+                       , B.txt "  Tab - Change focus"
+                       , B.txt "  Esc - Cancel"
                        ]
           instructionsRight =
             B.padLeft (B.Pad 2) $
@@ -230,9 +252,11 @@ drawUI (CyanideState conn (RecipeInputScreen nameEd gl il instr recipeFor mr f _
 
 drawEdit = B.txt . T.unlines
 
-drawListGlass :: Bool -> Types.Glass -> B.Widget Name
-drawListGlass False (Types.Glass _ n) = BC.hCenter $ B.txt n
-drawListGlass True (Types.Glass _ n) = BC.hCenter $ B.txt $ "* " `T.append` n `T.append` " *"
+drawListGlass :: Bool -> (Maybe Types.Glass) -> B.Widget Name
+drawListGlass False (Just (Types.Glass _ n)) = BC.hCenter $ B.txt n
+drawListGlass True (Just (Types.Glass _ n)) = BC.hCenter $ B.txt $ "* " `T.append` n `T.append` " *"
+drawListGlass False Nothing = B.txt " "
+drawListGlass True Nothing = BC.hCenter $ B.txt "*"
 
 drawListIngredient :: Bool -> Types.IngredientListItem -> B.Widget Name
 drawListIngredient _ ingr = B.txt $ formatIngr ingr

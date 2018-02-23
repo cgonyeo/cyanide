@@ -6,29 +6,43 @@ import qualified Brick as B
 import qualified Graphics.Vty as Vty
 import qualified Data.Text as T
 import qualified Data.Vector as V
+import qualified Brick.Focus as BF
 import qualified Brick.Widgets.Center as BC
 import qualified Brick.Widgets.Border as BB
+import qualified Brick.Widgets.Edit as BE
+import qualified Brick.Widgets.List as BL
 import Data.Monoid
 import Control.Monad.IO.Class
 
 import Cyanide.UI.State
 import Cyanide.UI.Util
+import qualified Cyanide.UI.RecipeInputScreen as RecipeInput
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Recipes as Recipes
+import qualified Cyanide.Data.Glasses as Glasses
 import qualified Cyanide.Data.Postgres as Postgres
 
 attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(RecipeDetailScreen _ _ _ prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn scr@(RecipeDetailScreen r g is prev)) (B.VtyEvent e) =
     case e of
-        -- edit
-        --Vty.EvKey (Vty.KChar 'e') [] ->
-        --    let newList = BL.listInsert 0 (Types.Recipe 0 "test" "testy" False) l
-        --    in B.continue $ CyanideState conn (RecipeSelectionScreen newList)
+        Vty.EvKey (Vty.KChar 'e') [] -> do
+            newScr <- liftIO $ RecipeInput.newRecipeInputScreen conn g is (recipeFor $ Types.recipeName r) (Just r) goBack 
+            B.continue $ CyanideState conn newScr
+          where goBack (Just (r,g,is)) = return $ RecipeDetailScreen r g is prev
+                goBack Nothing = return $ scr
 
-        Vty.EvKey (Vty.KEsc) [] -> B.continue $ CyanideState conn prev
+                recipeFor (Left _) = Nothing
+                recipeFor (Right i) = Just i
+
+        Vty.EvKey (Vty.KChar 'd') [Vty.MMeta] -> do
+            B.continue $ CyanideState conn $ RecipeDeletionScreen r goBack
+          where goBack True = prev Nothing
+                goBack False = scr
+
+        Vty.EvKey (Vty.KEsc) [] -> B.continue $ CyanideState conn (prev $ Just (r,g,is))
 
         ev -> B.continue s
 handleEvent s _ = B.continue s
@@ -38,22 +52,36 @@ drawUI (CyanideState conn (RecipeDetailScreen r g is _)) =
     [ BC.center
         $ B.hLimit 80
         $ B.vLimit 25
-        $ B.vBox [ BC.hCenter $ BB.border
-                     $ B.vBox [ handleRecipeName $ Types.recipeName r
-                              , handleMaybeGlass g
-                              , addPaddedRow 12 "Ingredients" (map B.txt $ map formatIngr is)
-                              , addPaddedRow 12 "Instructions" [B.txt $ Types.instructions r]
-                              ]
+        $ B.vBox [ B.vLimit 22
+                    $ B.hBox [ B.hLimit 40 $ BB.borderWithLabel (B.txt "Info")
+                                $ B.padBottom (B.Max)
+                                $ B.padAll 1
+                                $ B.vBox [ handleRecipeName $ Types.recipeName r
+                                         , handleMaybeGlass g
+                                         , handleGarnish $ Types.recipeGarnish r
+                                         , addPaddedRow 7 "Parts" (map B.txtWrap $ map formatIngr is)
+                                         ]
+                             , BB.borderWithLabel (B.txt "Instructions")
+                                $ B.padBottom (B.Max) $ B.padRight (B.Max)
+                                $ B.padAll 1
+                                $ B.txtWrap $ let instr = Types.instructions r
+                                              in if instr == "" then " " else instr
+                             ]
                  , renderInstructions [ ("Esc","Previous screen")
                                       , ("e","Edit recipe")
+                                      , ("Alt-d","Delete recipe")
                                       ]
                  ]
     ]
 
     where handleMaybeGlass :: Maybe Types.Glass -> B.Widget Name
           handleMaybeGlass Nothing  = B.emptyWidget
-          handleMaybeGlass (Just g) = addPaddedRow 12 "Glass" [B.txt $ Types.glassName g]
+          handleMaybeGlass (Just g) = addPaddedRow 7 "Glass" [B.txt $ Types.glassName g]
+
+          handleGarnish :: T.Text -> B.Widget Name
+          handleGarnish ""  = B.emptyWidget
+          handleGarnish gn = addPaddedRow 7 "Garnish" [B.txtWrap gn]
 
           handleRecipeName :: Either T.Text Types.Ingredient -> B.Widget Name
-          handleRecipeName (Left n) = addPaddedRow 12 "Name" [B.txt $ n]
-          handleRecipeName (Right i) = addPaddedRow 12 "Name" [B.txt $ "recipe for " `T.append` Types.ingredientName i]
+          handleRecipeName (Left n) = addPaddedRow 7 "Name" [B.txtWrap $ n]
+          handleRecipeName (Right i) = addPaddedRow 7 "Name" [B.txtWrap $ "recipe for " `T.append` Types.ingredientName i]

@@ -16,7 +16,7 @@ CREATE TABLE "ingredient_classes" (
 
 CREATE TABLE "ingredients" (
     id            SERIAL        NOT NULL,
-    class         INTEGER       NOT NULL,
+    class         INTEGER,
     name          VARCHAR(1024) NOT NULL,
     amount        INTEGER       NOT NULL,
     unit          VARCHAR(1024) NOT NULL,
@@ -36,6 +36,7 @@ CREATE TABLE "purchases" (
 CREATE TABLE "recipes" (
     id                SERIAL         NOT NULL,
     name              VARCHAR(1024),
+    garnish           VARCHAR(1024)  NOT NULL,
     instructions      VARCHAR(10240) NOT NULL,
     for_ingredient_id INTEGER UNIQUE,
     PRIMARY KEY (id),

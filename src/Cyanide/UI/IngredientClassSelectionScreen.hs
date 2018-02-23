@@ -46,7 +46,7 @@ handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn (IngredientClassSelectionScreen l)) = [ui]
-    where box = BB.borderWithLabel (B.txt "IngredientClasses") $
+    where box = BB.borderWithLabel (B.txt "Ingredient Classes") $
               BL.renderList listDrawElement True l
           ui = BC.center
                $ B.hLimit 80

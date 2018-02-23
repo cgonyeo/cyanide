@@ -35,14 +35,14 @@ costEditorName :: Name
 costEditorName = "PurchaseCreationCost"
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(PurchaseCreationScreen i ps rs mr l f le ce fe)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn scr@(PurchaseCreationScreen ing le ce fe prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey Vty.KEsc [] ->
-            B.continue $ CyanideState conn $ IngredientDetailScreen i ps rs mr l f
+            B.continue $ CyanideState conn $ prev Nothing
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext fe
-            in B.continue $ CyanideState conn $ PurchaseCreationScreen i ps rs mr l f le ce newFocus
+            in B.continue $ CyanideState conn $ scr { purchaseCreationEditFocusRing = newFocus }
 
         Vty.EvKey Vty.KEnter [] ->
             let locations = BE.getEditContents le
@@ -56,28 +56,28 @@ handleEvent s@(CyanideState conn scr@(PurchaseCreationScreen i ps rs mr l f le c
                                     then B.continue s
                                     else do
                                         -- update the amount count for the ingredient
-                                        let newAmount = Types.amount i + 1
-                                        liftIO $ Ingredients.updateIngredientAmount conn (i,newAmount)
-                                        let newIngredient = i { Types.amount = newAmount }
+                                        let newAmount = Types.amount ing + 1
+                                        liftIO $ Ingredients.updateIngredientAmount conn (ing,newAmount)
+                                        let newIngredient = ing { Types.amount = newAmount }
 
                                         -- create the purchase
                                         now <- liftIO getCurrentTime
                                         let today = utctDay now
-                                        liftIO $ Purchases.newPurchase conn (i,today,locations !! 0,p)
-                                        let newPurchases = BL.listInsert 0 (Types.Purchase today (locations !! 0) p) ps
-                                        B.continue $ CyanideState conn $ IngredientDetailScreen newIngredient newPurchases rs mr l f
+                                            location = locations !! 0
+                                        liftIO $ Purchases.newPurchase conn (ing,today,location,p)
+                                        B.continue $ CyanideState conn $ prev (Just (newIngredient,Types.Purchase today location p))
 
         ev -> if BF.focusGetCurrent (fe) == Just locationEditorName then do
                     newEdit <- BE.handleEditorEvent e le
-                    B.continue $ CyanideState conn (PurchaseCreationScreen i ps rs mr l f newEdit ce fe)
+                    B.continue $ CyanideState conn $ scr { purchaseCreationEditLocation = newEdit }
               else if BF.focusGetCurrent (fe) == Just costEditorName then do
                     newEdit <- BE.handleEditorEvent e ce
-                    B.continue $ CyanideState conn (PurchaseCreationScreen i ps rs mr l f le newEdit fe)
+                    B.continue $ CyanideState conn $ scr { purchaseCreationEditCost = newEdit }
               else B.continue s
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (PurchaseCreationScreen ing _ _ _ _ _ le ce fe)) =
+drawUI (CyanideState conn (PurchaseCreationScreen ing le ce fe _)) =
     [ BC.center
         $ B.hLimit 80
         $ B.vLimit 25
@@ -92,7 +92,7 @@ drawUI (CyanideState conn (PurchaseCreationScreen ing _ _ _ _ _ le ce fe)) =
             , B.txt " "
             , renderInstructions [ ("Tab","Change focus")
                                  , ("Enter","Record purchase")
-                                 , ("Esc","Previous screen")
+                                 , ("Esc","Cancel")
                                  ]
             ]
     ]

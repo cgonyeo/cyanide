@@ -9,41 +9,41 @@ import qualified Data.Text as T
 import Data.Time.Calendar
 
 newtype CyanideErr = CyanideErr String
-    deriving(Show)
+    deriving(Show,Eq)
 
 data IngredientUnit = Zero
                     | Ml750
-    deriving(Show,Read)
+    deriving(Show,Read,Eq)
 
 data RecipeUnit = Undefined
                 | Ounce
                 | Millileter
                 | Dash
                 | Teaspoon
-    deriving(Show,Read)
+    deriving(Show,Read,Eq)
 
 data IngredientClass = IngredientClass
     { ingredientClassId   :: Int
     , ingredientClassName :: T.Text
-    } deriving(Generic,Show)
+    } deriving(Generic,Show,Eq)
 instance FromRow IngredientClass
 
 data Ingredient = Ingredient
     { ingredientId    :: Int
     , ingredientName  :: T.Text
-    , ingredientClass :: T.Text
+    , ingredientClass :: Maybe Int
     , amount          :: Int
     , unit            :: T.Text
     , notForRecipes   :: Bool
     }
-    deriving(Generic,Show)
+    deriving(Generic,Show,Eq)
 instance FromRow Ingredient
 
 data Glass = Glass
     { glassId   :: Int
     , glassName :: T.Text
     }
-    deriving(Generic,Show)
+    deriving(Generic,Show,Eq)
 instance FromRow Glass
 
 data Purchase = Purchase
@@ -51,16 +51,17 @@ data Purchase = Purchase
     , location   :: T.Text
     , price      :: Int
     }
-    deriving(Generic,Show)
+    deriving(Generic,Show,Eq)
 instance FromRow Purchase
 
 data Recipe = Recipe
     { recipeId        :: Int
     , recipeName      :: Either T.Text Ingredient
+    , recipeGarnish   :: T.Text
     -- Human readable instructions
     , instructions    :: T.Text
     }
-    deriving(Generic,Show)
+    deriving(Generic,Show,Eq)
 
 data IngredientListItem = IngredientListItem
     { amountNumer     :: Int
@@ -68,4 +69,4 @@ data IngredientListItem = IngredientListItem
     , ingListItemUnit :: T.Text
     , ingListItemIng  :: Either Ingredient IngredientClass
     }
-    deriving(Show)
+    deriving(Show,Eq)

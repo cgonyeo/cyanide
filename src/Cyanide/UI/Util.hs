@@ -30,7 +30,7 @@ addRow maxTitleSize title contents =
 
 addPaddedRow :: Int -> T.Text -> [B.Widget Name] -> B.Widget Name
 addPaddedRow maxTitleSize title contents =
-  B.padAll 1 $ addRow maxTitleSize title contents
+  B.padBottom (B.Pad 1) $ addRow maxTitleSize title contents
 
 (+++) :: T.Text -> T.Text -> T.Text
 (+++) t1 t2 = t1 `T.append` " " `T.append` t2

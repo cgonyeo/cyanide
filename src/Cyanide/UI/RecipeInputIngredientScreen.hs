@@ -132,7 +132,7 @@ drawUI (CyanideState conn (RecipeInputIngredientScreen rname amountEd unitEd fil
           filterRenderedEd = BF.withFocusRing f (BE.renderEditor drawEdit) filterEd
           ingrRenderedLst = BF.withFocusRing f (BL.renderList drawList) ingrList
 
-          prompt = "Adding an ingredient to \"" `T.append` rname `T.append` "\""
+          prompt = "Adding an ingredient to " `T.append` rname
 
           leftColumn = BC.vCenter
                         $ B.vBox [ BC.hCenter $ B.txt "Amount"
@@ -158,7 +158,7 @@ drawUI (CyanideState conn (RecipeInputIngredientScreen rname amountEd unitEd fil
                                      ]
                             , renderInstructions [ ("Enter","Add ingredient")
                                                  , ("Tab","Change focus")
-                                                 , ("Esc","Previous screen")
+                                                 , ("Esc","Cancel")
                                                  ]
                             ]
 

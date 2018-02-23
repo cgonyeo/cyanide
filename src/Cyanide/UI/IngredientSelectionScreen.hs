@@ -31,69 +31,55 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (IngredientSelectionScreen l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn scr@(IngredientSelectionScreen l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
             B.continue $ CyanideState conn MainSelectionScreen
 
         Vty.EvKey Vty.KEnter [] -> do
-            let Just (_,ingr) = BL.listSelectedElement l
+            let Just (j,ingr) = BL.listSelectedElement l
             purchases <- liftIO $ Purchases.getPurchasesForIngredient conn ingr
             recipes1 <- liftIO $ Recipes.getRecipesUsingIngredient conn ingr
-            recipes2 <- liftIO $ Recipes.getRecipesUsingIngredientClass conn (Types.ingredientClass ingr)
+            (recipes2,mic) <- case Types.ingredientClass ingr of
+                                Just icId -> do
+                                    rlst <- liftIO $ Recipes.getRecipesUsingIngredientClass conn icId
+                                    ic <- liftIO $ IngredientClasses.getIngredientClass conn icId
+                                    return (rlst,Just ic)
+                                Nothing -> return ([],Nothing)
             recipeForIngr <- liftIO $ Recipes.getRecipeForIngredient conn ingr
             B.continue $ CyanideState conn $ IngredientDetailScreen
                 ingr
+                mic
                 (BL.list IngredientDetail.purchasesListName (V.fromList purchases) 1)
                 (BL.list IngredientDetail.recipesListName (V.fromList (recipes1++recipes2)) 1)
                 recipeForIngr
-                l
                 (BF.focusRing ["IngredientDetailPurchases", "IngredientDetailRecipes"])
-
-        Vty.EvKey (Vty.KChar 'd') [] -> do
-            let Just (_,ingr) = BL.listSelectedElement l
-            recipes <- liftIO $ Recipes.getRecipesUsingIngredient conn ingr
-            recipeForIngr <- liftIO $ Recipes.getRecipeForIngredient conn ingr
-            B.continue $ CyanideState conn (IngredientDeletionScreen recipes recipeForIngr l)
+                (goBack j)
+          where goBack n (Just i) = let newList = BL.listModify (\_ -> i) l
+                                    in scr { ingredientSelectionList = newList }
+                goBack n Nothing = let newList = BL.listRemove n l
+                                   in scr { ingredientSelectionList = newList }
 
         Vty.EvKey (Vty.KChar 'n') [] -> do
             ics <- liftIO $ IngredientClasses.getIngredientClasses conn
 
             let ed = BE.editor IngredientInput.editorName (Just 1) ""
-                iclist = BL.list IngredientInput.classesName (V.fromList ics) 1
+                iclist = BL.list IngredientInput.classesName (V.fromList $ [Nothing] ++ map Just ics) 1
                 ulist = BL.list IngredientInput.unitsName (V.fromList Units.ingredientUnits) 1
                 f = BF.focusRing [ IngredientInput.editorName
                                  , IngredientInput.classesName
                                  , IngredientInput.unitsName
                                  ]
-            B.continue $ CyanideState conn (IngredientInputScreen ed iclist ulist f False Nothing l)
-
-        Vty.EvKey (Vty.KChar 'e') [] -> do
-            let Just (_,ingr) = BL.listSelectedElement l
-            ics <- liftIO $ IngredientClasses.getIngredientClasses conn
-
-            let selectedIcIndex = getIndex (Types.ingredientClass ingr) Types.ingredientClassName ics
-                selectedUnitIndex = getIndex (Types.unit ingr) id Units.ingredientUnits
-                ed = BE.editor IngredientInput.editorName (Just 1) (Types.ingredientName ingr)
-                iclist = BL.listMoveTo selectedIcIndex
-                                $ BL.list IngredientInput.classesName (V.fromList ics) 1
-                ulist = BL.listMoveTo selectedUnitIndex
-                                $ BL.list IngredientInput.unitsName (V.fromList Units.ingredientUnits) 1
-                f = BF.focusRing [ IngredientInput.editorName
-                                 , IngredientInput.classesName
-                                 , IngredientInput.unitsName
-                                 ]
-            B.continue $ CyanideState conn (IngredientInputScreen ed iclist ulist f (Types.notForRecipes ingr) (Just ingr) l)
+            B.continue $ CyanideState conn (IngredientInputScreen ed iclist ulist f False Nothing goBack)
+          where goBack Nothing = scr
+                goBack (Just (i,_)) = 
+                    let newList = BL.listInsert (length l) i l
+                        newList' = BL.listMoveTo (length newList) newList
+                    in scr { ingredientSelectionList = newList' }
 
         ev -> do
             newList <- BL.handleListEventVi BL.handleListEvent ev l
             B.continue $ CyanideState conn (IngredientSelectionScreen newList)
-    where getIndex :: (Eq b) => b -> (a -> b) -> [a] -> Int
-          getIndex mustEqual toEqualForm lst =
-                let matches = filter (\x -> snd x == mustEqual) $ zip [0..] (map toEqualForm lst)
-                in case matches of
-                    [(i,_)] -> i
-                    _ -> 0
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
@@ -106,16 +92,13 @@ drawUI (CyanideState conn (IngredientSelectionScreen l)) = [ui]
                             [ BC.hCenter box
                             , renderInstructions [ ("Enter","View details")
                                                  , ("n","New ingredient")
-                                                 , ("e","Edit ingredient")
-                                                 , ("d","Delete ingredient")
                                                  , ("Esc","Previous screen")
                                                  ]
                             ]
 
 listDrawElement :: Bool -> Types.Ingredient -> B.Widget Name
-listDrawElement sel (Types.Ingredient _ n c a u _) =
-    BC.hCenter $ B.hBox [ formatText JustifyLeft 38 n
-                        , formatText JustifyLeft 16 c
+listDrawElement sel (Types.Ingredient _ n _ a u _) =
+    BC.hCenter $ B.hBox [ formatText JustifyLeft 45 n
                         , formatText JustifyRight 3 (T.pack $ show a)
                         , B.txt " "
                         , formatText JustifyLeft 18 u
