@@ -140,14 +140,7 @@ getRecipesToGlasses conn = do
 getRecipesIngredientAvailability :: DBConn -> IO [(Int,Bool)]
 getRecipesIngredientAvailability conn = do
     P.query_ conn
-        "SELECT recipes.id \
-        \     , bool_and(ingredients.amount > 0) \
-        \ FROM recipes \
-        \ INNER JOIN ingredients_to_recipes \
-        \ ON ingredients_to_recipes.recipe_id = recipes.id \
-        \ INNER JOIN ingredients \
-        \ ON ingredient_id = ingredients.id \
-        \ GROUP BY recipes.id"
+        "SELECT query1.id, query1.avail AND query2.avail FROM (SELECT recipes.id, coalesce(bool_and(ingredients.amount > 0),FALSE) AS avail FROM recipes INNER JOIN ingredients_to_recipes ON recipe_id = recipes.id INNER JOIN ingredient_classes ON ingredient_class_id = ingredient_classes.id LEFT OUTER JOIN ingredients ON ingredients.class = ingredient_classes.id GROUP BY recipes.id) AS query1 INNER JOIN (SELECT recipes.id, bool_and(ingredients.amount > 0) as avail FROM recipes INNER JOIN ingredients_to_recipes ON ingredients_to_recipes.recipe_id = recipes.id INNER JOIN ingredients ON ingredient_id = ingredients.id GROUP BY recipes.id) AS query2 ON query1.id = query2.id order by query1.id"
 
 newRecipe :: DBConn -> (Maybe T.Text,T.Text,T.Text,Maybe Glass,Maybe Ingredient,[IngredientListItem]) -> IO Recipe
 newRecipe conn (mName,garnish,instr,mGlass,mIngr,ingredients) = do

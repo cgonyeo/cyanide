@@ -211,7 +211,7 @@ drawUI (CyanideState conn (RecipeInputScreen nameEd garnishEd gl il instr recipe
 
           recipeInfo = B.hBox
                 [ if isNothing recipeFor
-                    then B.hLimit 20 $
+                    then B.hLimit 21 $
                             B.vBox [ BB.borderWithLabel (B.txt "Name") nameEdRndrd
                                    , BB.borderWithLabel (B.txt "Garnish") garnishEdRndrd
                                    , BB.borderWithLabel (B.txt "Glass") glst

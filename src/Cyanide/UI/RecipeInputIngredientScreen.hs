@@ -52,15 +52,17 @@ handleEvent s@(CyanideState conn scr@(RecipeInputIngredientScreen rname amountEd
             in B.continue $ CyanideState conn $ scr { recipeInputIngredientFocusRing = newFocus }
 
         Vty.EvKey Vty.KEnter [] -> do
-            let (amtNum,amtDen) = parseAmount $ fromJust $ getEditorLine amountEd
-                unitInput = unitAliases $ fromJust $ getEditorLine unitEd
-
-            case BL.listSelectedElement ingrList of
+            case parseAmount $ fromJust $ getEditorLine amountEd of
                 Nothing -> B.continue s
-                Just (_,i) -> do
-                    ingrItem <- liftIO $ makeIngrItem conn amtNum amtDen unitInput i
-                    let newScr = goBack (Just ingrItem)
-                    B.continue $ CyanideState conn newScr
+                Just (amtNum,amtDen) -> do
+                    let unitInput = unitAliases $ fromJust $ getEditorLine unitEd
+
+                    case BL.listSelectedElement ingrList of
+                        Nothing -> B.continue s
+                        Just (_,i) -> do
+                            ingrItem <- liftIO $ makeIngrItem conn amtNum amtDen unitInput i
+                            let newScr = goBack (Just ingrItem)
+                            B.continue $ CyanideState conn newScr
 
 
         ev -> if BF.focusGetCurrent (f) == Just amountName then do
@@ -87,16 +89,10 @@ handleEvent s@(CyanideState conn scr@(RecipeInputIngredientScreen rname amountEd
 
   where filterFunc filterText i = L.isInfixOf (T.unpack $ T.toLower filterText) (T.unpack $ T.toLower (getListItemName i))
 
-        parseAmount :: T.Text -> (Int,Int)
-        parseAmount x = parseAmount' $ T.breakOn "/" x
-
-        parseAmount' :: (T.Text,T.Text) -> (Int,Int)
-        parseAmount' (x,"") = case readMaybe $ T.unpack x of
-                                (Just n) -> (n,1)
-                                Nothing -> (0,1)
-        parseAmount' (x1,x2) = case (readMaybe $ T.unpack x1,readMaybe $ T.unpack $ T.drop 1 x2) of
-                                (Just n1,Just n2) -> (n1,n2)
-                                _ -> (0,1)
+        parseAmount :: T.Text -> Maybe (Int,Int)
+        parseAmount x = case readFraction $ T.unpack x of
+                                (Just (Fraction n d)) -> Just (n,d)
+                                Nothing -> Nothing
 
         unitAliases :: T.Text -> T.Text
         unitAliases x = case T.toLower x of
