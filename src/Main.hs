@@ -15,7 +15,7 @@ main = do
         Left err -> do
             hPutStrLn stderr err
             exitWith (ExitFailure 1)
-        Right (Config.Config h po u pa d) -> do
+        Right c@(Config.Config (Config.DatabaseConfig h po u pa d) _) -> do
             conn <- Postgres.newDBConn h po u pa d
             Postgres.initDb conn
-            App.run conn
+            App.run conn c

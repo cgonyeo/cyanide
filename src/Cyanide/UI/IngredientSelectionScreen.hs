@@ -31,10 +31,10 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(IngredientSelectionScreen l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(IngredientSelectionScreen l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn MainSelectionScreen
+            B.continue $ s { stateScreen = MainSelectionScreen }
 
         Vty.EvKey Vty.KEnter [] -> do
             let Just (j,ingr) = BL.listSelectedElement l
@@ -47,14 +47,14 @@ handleEvent s@(CyanideState conn scr@(IngredientSelectionScreen l)) (B.VtyEvent 
                                     return (rlst,Just ic)
                                 Nothing -> return ([],Nothing)
             recipeForIngr <- liftIO $ Recipes.getRecipeForIngredient conn ingr
-            B.continue $ CyanideState conn $ IngredientDetailScreen
-                ingr
-                mic
-                (BL.list IngredientDetail.purchasesListName (V.fromList purchases) 1)
-                (BL.list IngredientDetail.recipesListName (V.fromList (recipes1++recipes2)) 1)
-                recipeForIngr
-                (BF.focusRing ["IngredientDetailPurchases", "IngredientDetailRecipes"])
-                (goBack j)
+            B.continue $ s { stateScreen = IngredientDetailScreen
+                                            ingr
+                                            mic
+                                            (BL.list IngredientDetail.purchasesListName (V.fromList purchases) 1)
+                                            (BL.list IngredientDetail.recipesListName (V.fromList (recipes1++recipes2)) 1)
+                                            recipeForIngr
+                                            (BF.focusRing ["IngredientDetailPurchases", "IngredientDetailRecipes"])
+                                            (goBack j) }
           where goBack n (Just i) = let newList = BL.listModify (\_ -> i) l
                                     in scr { ingredientSelectionList = newList }
                 goBack n Nothing = let newList = BL.listRemove n l
@@ -70,7 +70,7 @@ handleEvent s@(CyanideState conn scr@(IngredientSelectionScreen l)) (B.VtyEvent 
                                  , IngredientInput.classesName
                                  , IngredientInput.unitsName
                                  ]
-            B.continue $ CyanideState conn (IngredientInputScreen ed iclist ulist f False Nothing goBack)
+            B.continue $ s { stateScreen = (IngredientInputScreen ed iclist ulist f False Nothing goBack) }
           where goBack Nothing = scr
                 goBack (Just (i,_)) = 
                     let newList = BL.listInsert (length l) i l
@@ -79,11 +79,11 @@ handleEvent s@(CyanideState conn scr@(IngredientSelectionScreen l)) (B.VtyEvent 
 
         ev -> do
             newList <- BL.handleListEventVi BL.handleListEvent ev l
-            B.continue $ CyanideState conn (IngredientSelectionScreen newList)
+            B.continue $ s { stateScreen = (IngredientSelectionScreen newList) }
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (IngredientSelectionScreen l)) = [ui]
+drawUI (CyanideState conn _ (IngredientSelectionScreen l)) = [ui]
     where box = BB.borderWithLabel (B.txt "Ingredients") $
               BL.renderList listDrawElement True l
           ui = BC.center

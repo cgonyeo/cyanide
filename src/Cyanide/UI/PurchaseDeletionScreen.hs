@@ -23,23 +23,23 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (PurchaseDeletionScreen p i prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ (PurchaseDeletionScreen p i prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn $ prev False
+            B.continue $ s { stateScreen = prev False }
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn $ prev False
+            B.continue $ s { stateScreen = prev False }
 
         Vty.EvKey (Vty.KChar 'y') [] -> do
             liftIO $ Purchases.deletePurchase conn p
-            B.continue $ CyanideState conn $ prev True
+            B.continue $ s { stateScreen = prev True }
 
         _ -> B.continue s
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (PurchaseDeletionScreen (Types.Purchase t l p) i _)) = [ui]
+drawUI (CyanideState conn _ (PurchaseDeletionScreen (Types.Purchase t l p) i _)) = [ui]
     where ui = BC.center
                $ B.hLimit 80
                $ B.vLimit 25 $ B.vBox

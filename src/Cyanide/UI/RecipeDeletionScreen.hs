@@ -24,23 +24,23 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (RecipeDeletionScreen r prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ (RecipeDeletionScreen r prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn $ prev False
+            B.continue $ s { stateScreen = prev False }
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn $ prev False
+            B.continue $ s { stateScreen = prev False }
 
         Vty.EvKey (Vty.KChar 'y') [] -> do
             liftIO $ Recipes.deleteRecipe conn r
-            B.continue $ CyanideState conn $ prev True
+            B.continue $ s { stateScreen = prev True }
 
         _ -> B.continue s
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (RecipeDeletionScreen r _)) = [ui]
+drawUI (CyanideState conn _ (RecipeDeletionScreen r _)) = [ui]
     where handleRecipeName (Right i) = "the recipe for " `T.append` Types.ingredientName i
           handleRecipeName (Left n) = n
 

@@ -7,13 +7,18 @@ import qualified Brick.Widgets.List as BL
 import qualified Brick.Widgets.Edit as BE
 import qualified Brick.Focus as BF
 
+import qualified Cyanide.Config as Config
 import qualified Cyanide.Data.Postgres as Postgres
 import qualified Cyanide.Data.Types as Types
 
 -- | Named resources
 type Name = T.Text
 
-data CyanideState = CyanideState Postgres.DBConn CyanideScreen
+data CyanideState = CyanideState
+                        { stateDBConn :: Postgres.DBConn
+                        , stateConfig :: Config.Config
+                        , stateScreen :: CyanideScreen
+                        }
 
 data CyanideScreen
     = MainSelectionScreen

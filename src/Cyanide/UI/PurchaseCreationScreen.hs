@@ -35,14 +35,14 @@ costEditorName :: Name
 costEditorName = "PurchaseCreationCost"
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(PurchaseCreationScreen ing le ce fe prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(PurchaseCreationScreen ing le ce fe prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey Vty.KEsc [] ->
-            B.continue $ CyanideState conn $ prev Nothing
+            B.continue $ s { stateScreen = prev Nothing }
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext fe
-            in B.continue $ CyanideState conn $ scr { purchaseCreationEditFocusRing = newFocus }
+            in B.continue $ s { stateScreen = scr { purchaseCreationEditFocusRing = newFocus } }
 
         Vty.EvKey Vty.KEnter [] ->
             let locations = BE.getEditContents le
@@ -65,19 +65,19 @@ handleEvent s@(CyanideState conn scr@(PurchaseCreationScreen ing le ce fe prev))
                                         let today = utctDay now
                                             location = locations !! 0
                                         liftIO $ Purchases.newPurchase conn (ing,today,location,p)
-                                        B.continue $ CyanideState conn $ prev (Just (newIngredient,Types.Purchase today location p))
+                                        B.continue $ s { stateScreen = prev (Just (newIngredient,Types.Purchase today location p)) }
 
         ev -> if BF.focusGetCurrent (fe) == Just locationEditorName then do
                     newEdit <- BE.handleEditorEvent e le
-                    B.continue $ CyanideState conn $ scr { purchaseCreationEditLocation = newEdit }
+                    B.continue $ s { stateScreen = scr { purchaseCreationEditLocation = newEdit } }
               else if BF.focusGetCurrent (fe) == Just costEditorName then do
                     newEdit <- BE.handleEditorEvent e ce
-                    B.continue $ CyanideState conn $ scr { purchaseCreationEditCost = newEdit }
+                    B.continue $ s { stateScreen = scr { purchaseCreationEditCost = newEdit } }
               else B.continue s
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (PurchaseCreationScreen ing le ce fe _)) =
+drawUI (CyanideState conn _ (PurchaseCreationScreen ing le ce fe _)) =
     [ BC.center
         $ B.hLimit 80
         $ B.vLimit 25

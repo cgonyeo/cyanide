@@ -24,28 +24,28 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (IngredientClassSelectionScreen l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ (IngredientClassSelectionScreen l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn MainSelectionScreen
+            B.continue $ s { stateScreen = MainSelectionScreen }
 
         Vty.EvKey (Vty.KChar 'd') [] ->
-            B.continue $ CyanideState conn (IngredientClassDeletionScreen l)
+            B.continue $ s { stateScreen = (IngredientClassDeletionScreen l) }
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn (IngredientClassInputScreen (BE.editorText "IngredientClassCreationScreen" (Just 1) "") Nothing l)
+            B.continue $ s { stateScreen = (IngredientClassInputScreen (BE.editorText "IngredientClassCreationScreen" (Just 1) "") Nothing l) }
 
         Vty.EvKey (Vty.KChar 'e') [] ->
             let (Just (_, ic@(Types.IngredientClass _ n))) = BL.listSelectedElement l
-            in B.continue $ CyanideState conn (IngredientClassInputScreen (BE.editorText "IngredientClassModificationScreen" (Just 1) n) (Just ic) l)
+            in B.continue $ s { stateScreen = (IngredientClassInputScreen (BE.editorText "IngredientClassModificationScreen" (Just 1) n) (Just ic) l) }
 
         ev -> do
             newList <- BL.handleListEventVi BL.handleListEvent ev l
-            B.continue $ CyanideState conn (IngredientClassSelectionScreen newList)
+            B.continue $ s { stateScreen = (IngredientClassSelectionScreen newList) }
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (IngredientClassSelectionScreen l)) = [ui]
+drawUI (CyanideState conn _ (IngredientClassSelectionScreen l)) = [ui]
     where box = BB.borderWithLabel (B.txt "Ingredient Classes") $
               BL.renderList listDrawElement True l
           ui = BC.center

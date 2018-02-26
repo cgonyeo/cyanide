@@ -24,28 +24,28 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (GlassSelectionScreen l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ (GlassSelectionScreen l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn MainSelectionScreen
+            B.continue $ s { stateScreen = MainSelectionScreen }
 
         Vty.EvKey (Vty.KChar 'd') [] ->
-            B.continue $ CyanideState conn (GlassDeletionScreen l)
+            B.continue $ s { stateScreen = (GlassDeletionScreen l) }
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn (GlassInputScreen (BE.editorText "GlassCreationScreen" (Just 1) "") Nothing l)
+            B.continue $ s { stateScreen = (GlassInputScreen (BE.editorText "GlassCreationScreen" (Just 1) "") Nothing l) }
 
         Vty.EvKey (Vty.KChar 'e') [] ->
             let (Just (_, g@(Types.Glass _ n))) = BL.listSelectedElement l
-            in B.continue $ CyanideState conn (GlassInputScreen (BE.editorText "GlassModificationScreen" (Just 1) n) (Just g) l)
+            in B.continue $ s { stateScreen = (GlassInputScreen (BE.editorText "GlassModificationScreen" (Just 1) n) (Just g) l) }
 
         ev -> do
             newList <- BL.handleListEventVi BL.handleListEvent ev l
-            B.continue $ CyanideState conn (GlassSelectionScreen newList)
+            B.continue $ s { stateScreen = (GlassSelectionScreen newList) }
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (GlassSelectionScreen l)) = [ui]
+drawUI (CyanideState conn _ (GlassSelectionScreen l)) = [ui]
     where box = BB.borderWithLabel (B.txt "Glasses") $
               BL.renderList listDrawElement True l
           ui = BC.center

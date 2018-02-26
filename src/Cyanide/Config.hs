@@ -19,6 +19,9 @@ defaultConfig = "[DATABASE]\n"
              ++ "user = cyanide\n"
              ++ "password = cyanide\n"
              ++ "database = cyanide\n"
+             ++ "\n"
+             ++ "[EDITOR]\n"
+             ++ "editor = \n"
 
 getConfigDir :: IO String
 getConfigDir = do
@@ -30,27 +33,42 @@ getConfigLocation = do
     dir <- getConfigDir
     return $ dir ++ "/cyanide.conf"
 
-data Config = Config { configHost     :: T.Text
-                     , configPort     :: Word16
-                     , configUser     :: T.Text
-                     , configPassword :: T.Text
-                     , configDatabase :: T.Text
-                     }
+data Config = Config
+    { databaseSection :: DatabaseConfig
+    , editorSection :: EditorConfig
+    }
+
+data DatabaseConfig = DatabaseConfig
+    { configHost     :: T.Text
+    , configPort     :: Word16
+    , configUser     :: T.Text
+    , configPassword :: T.Text
+    , configDatabase :: T.Text
+    }
+
+data EditorConfig = EditorConfig
+    { editor :: T.Text
+    }
 
 configParser :: IniParser Config 
-configParser =
-    section "DATABASE" $ do
+configParser = do
+    dbase <- section "DATABASE" $ do
         host <- field "host"
         port <- fieldOf "port" number
         user <- field "user"
         password <- field "password"
         database <- field "database"
-        return Config { configHost     = host
-                      , configPort     = port
-                      , configUser     = user
-                      , configPassword = password
-                      , configDatabase = database
-                      }
+        return DatabaseConfig
+                    { configHost     = host
+                    , configPort     = port
+                    , configUser     = user
+                    , configPassword = password
+                    , configDatabase = database
+                    }
+    edCfg <- section "EDITOR" $ do
+        editor <- field "editor"
+        return $ EditorConfig editor
+    return $ Config dbase edCfg
 
 getContentsSafe :: String -> IO (Either IOError String)
 getContentsSafe path =

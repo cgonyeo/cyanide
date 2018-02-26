@@ -24,13 +24,13 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (IngredientDeletionScreen ingr usedIn mr prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ (IngredientDeletionScreen ingr usedIn mr prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn $ prev False
+            B.continue $ s { stateScreen = prev False }
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn $ prev False
+            B.continue $ s { stateScreen = prev False }
 
         Vty.EvKey (Vty.KChar 'y') [] ->
             case (length usedIn,mr) of
@@ -42,11 +42,11 @@ handleEvent s@(CyanideState conn (IngredientDeletionScreen ingr usedIn mr prev))
         _ -> B.continue s
     where deleteIngredient = do
             liftIO $ Ingredients.deleteIngredient conn ingr
-            B.continue $ CyanideState conn $ prev True
+            B.continue $ s { stateScreen = prev True }
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (IngredientDeletionScreen ingr usedIn mr _)) = [ui]
+drawUI (CyanideState conn _ (IngredientDeletionScreen ingr usedIn mr _)) = [ui]
     where uiContent =
             case (length usedIn,mr) of
                 (0,Nothing) -> 

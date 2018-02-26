@@ -38,14 +38,14 @@ recipesListName :: Name
 recipesListName = "IngredientDetailRecipes"
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(IngredientDetailScreen i mic ps rs mr f prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(IngredientDetailScreen i mic ps rs mr f prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn $ prev (Just i)
+            B.continue $ s { stateScreen = prev (Just i) }
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
-            in B.continue $ CyanideState conn $ scr { ingredientFocusRing = newFocus }
+            in B.continue $ s { stateScreen = scr { ingredientFocusRing = newFocus } }
 
         Vty.EvKey (Vty.KChar 'p') [] ->
             adjustIngredientAmount (Types.amount i + 1)
@@ -57,7 +57,7 @@ handleEvent s@(CyanideState conn scr@(IngredientDetailScreen i mic ps rs mr f pr
 
         Vty.EvKey (Vty.KChar 'd') [Vty.MMeta] -> do
             recipes <- liftIO $ Recipes.getRecipesUsingIngredient conn i
-            B.continue $ CyanideState conn (IngredientDeletionScreen i recipes mr goBack)
+            B.continue $ s { stateScreen = (IngredientDeletionScreen i recipes mr goBack) }
           where goBack False = scr
                 goBack True = prev Nothing
 
@@ -76,7 +76,7 @@ handleEvent s@(CyanideState conn scr@(IngredientDetailScreen i mic ps rs mr f pr
                                  , IngredientInput.classesName
                                  , IngredientInput.unitsName
                                  ]
-            B.continue $ CyanideState conn (IngredientInputScreen ed iclist ulist f (Types.notForRecipes i) (Just i) goBack)
+            B.continue $ s { stateScreen = (IngredientInputScreen ed iclist ulist f (Types.notForRecipes i) (Just i) goBack) }
           where getIndex :: (Eq b) => b -> (a -> b) -> [a] -> Int
                 getIndex mustEqual toEqualForm lst =
                       let matches = filter (\x -> snd x == mustEqual) $ zip [0..] (map toEqualForm lst)
@@ -92,10 +92,10 @@ handleEvent s@(CyanideState conn scr@(IngredientDetailScreen i mic ps rs mr f pr
             case mr of
                 Just r -> do
                     ingrs <- liftIO $ Recipes.getIngredientsForRecipe conn r
-                    B.continue $ CyanideState conn $ RecipeDetailScreen r Nothing ingrs goBack
+                    B.continue $ s { stateScreen = RecipeDetailScreen r Nothing ingrs goBack }
                 Nothing -> do
                     newScr <- liftIO $ RecipeInput.newRecipeInputScreen conn Nothing [] (Just i) Nothing (return . goBack)
-                    B.continue $ CyanideState conn newScr
+                    B.continue $ s { stateScreen = newScr }
           where goBack Nothing = scr { ingredientRecipe = Nothing }
                 goBack (Just (r,_,_)) = scr { ingredientRecipe = Just r }
 
@@ -104,7 +104,7 @@ handleEvent s@(CyanideState conn scr@(IngredientDetailScreen i mic ps rs mr f pr
                 (Just "IngredientDetailRecipes",Just (j,r)) -> do
                     glass <- liftIO $ Recipes.getGlassForRecipe conn r
                     ingrs <- liftIO $ Recipes.getIngredientsForRecipe conn r
-                    B.continue $ CyanideState conn $ RecipeDetailScreen r glass ingrs (goBack j)
+                    B.continue $ s { stateScreen = RecipeDetailScreen r glass ingrs (goBack j) }
                 (_,_) -> B.continue s
           where goBack j Nothing = let newList = BL.listRemove j rs
                                    in scr { ingredientUsedIn = newList }
@@ -115,7 +115,7 @@ handleEvent s@(CyanideState conn scr@(IngredientDetailScreen i mic ps rs mr f pr
             if BF.focusGetCurrent f == Just purchasesListName
                 then case BL.listSelectedElement ps of
                         Nothing -> B.continue s
-                        Just (j,purchase) -> B.continue $ CyanideState conn (PurchaseDeletionScreen purchase i (goBack j))
+                        Just (j,purchase) -> B.continue $ s { stateScreen = (PurchaseDeletionScreen purchase i (goBack j)) }
                 else B.continue s
           where goBack n False = scr
                 goBack n True =
@@ -127,7 +127,7 @@ handleEvent s@(CyanideState conn scr@(IngredientDetailScreen i mic ps rs mr f pr
                 then let locationEdit = BE.editorText PurchaseCreationScreen.locationEditorName (Just 1) ""
                          costEdit = BE.editorText PurchaseCreationScreen.costEditorName (Just 1) ""
                          fRing = BF.focusRing [PurchaseCreationScreen.locationEditorName, PurchaseCreationScreen.costEditorName]
-                     in B.continue $ CyanideState conn (PurchaseCreationScreen i locationEdit costEdit fRing goBack)
+                     in B.continue $ s { stateScreen = (PurchaseCreationScreen i locationEdit costEdit fRing goBack) }
                 else B.continue s
           where goBack Nothing = scr
                 goBack (Just (i,p)) = let newPurchases = BL.listInsert 0 p ps
@@ -137,20 +137,20 @@ handleEvent s@(CyanideState conn scr@(IngredientDetailScreen i mic ps rs mr f pr
 
         ev -> if BF.focusGetCurrent (f) == Just purchasesListName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev ps
-                    B.continue $ CyanideState conn $ scr { ingredientPurchases = newList }
+                    B.continue $ s { stateScreen = scr { ingredientPurchases = newList } }
               else if BF.focusGetCurrent (f) == Just recipesListName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev rs
-                    B.continue $ CyanideState conn $ scr { ingredientUsedIn = newList }
+                    B.continue $ s { stateScreen = scr { ingredientUsedIn = newList } }
               else B.continue s
     where adjustIngredientAmount :: Int -> B.EventM Name (B.Next CyanideState)
           adjustIngredientAmount newAmount = do
               liftIO $ Ingredients.updateIngredientAmount conn (i,newAmount)
               let newIngredient = i { Types.amount = newAmount }
-              B.continue $ CyanideState conn $ scr { ingredient = newIngredient }
+              B.continue $ s { stateScreen = scr { ingredient = newIngredient } }
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (IngredientDetailScreen ing mic pl rl mr f prev)) = [ui]
+drawUI (CyanideState conn _ (IngredientDetailScreen ing mic pl rl mr f prev)) = [ui]
     where l1 = BF.withFocusRing f (BL.renderList listDrawPurchase) pl
           l2 = BF.withFocusRing f (BL.renderList listDrawRecipe) rl
 

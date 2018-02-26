@@ -23,6 +23,7 @@ import Data.Digest.Pure.SHA
 
 import Cyanide.UI.State
 import Cyanide.UI.Util
+import qualified Cyanide.Config as Config
 import qualified Cyanide.UI.RecipeInputIngredientScreen as RecipeInputIngredient
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Ingredients as Ingredients
@@ -77,15 +78,15 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd garnishEd gl il instr recipeFor mr f prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn conf scr@(RecipeInputScreen nameEd garnishEd gl il instr recipeFor mr f prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] -> do
             newScr <- liftIO $ prev Nothing
-            B.continue $ CyanideState conn newScr
+            B.continue $ s { stateScreen = newScr }
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
-            in B.continue $ CyanideState conn $ scr { recipeInputFocusRing = newFocus }
+            in B.continue $ s { stateScreen = scr { recipeInputFocusRing = newFocus } }
 
         Vty.EvKey (Vty.KChar 'a') [Vty.MMeta] -> do
             -- Construct the original list of ingredient options
@@ -124,13 +125,13 @@ handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd garnishEd gl il i
                                         in scr { recipeInputIngredientList = newList }
                                     Nothing -> scr)
 
-            B.continue $ CyanideState conn (RecipeInputIngredientScreen name amountEditor unitEditor filterEditor ingrListOrig ingList f getBack)
+            B.continue $ s { stateScreen = (RecipeInputIngredientScreen name amountEditor unitEditor filterEditor ingrListOrig ingList f getBack) }
 
         Vty.EvKey (Vty.KChar 'i') [Vty.MMeta] -> do
             editorEnv <- liftIO $ getEnv "EDITOR"
-            let editor = case editorEnv of
-                            "" -> "vim"
-                            e -> e
+            let editor = case Config.editor (Config.editorSection conf) of
+                            "" -> editorEnv
+                            e -> T.unpack e
                 tmpDir = "/tmp"
                 hashOfInstructions = showDigest $ sha512 (BSL.pack $ T.unpack instr)
                 fileName = tmpDir ++ "/cyanide-" ++ take 8 hashOfInstructions ++ ".md"
@@ -139,14 +140,14 @@ handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd garnishEd gl il i
                 callCommand $ editor ++ " " ++ fileName
                 newInstructions <- readFile fileName
                 removeFile fileName
-                return $ CyanideState conn $ scr { recipeInputInstructions = T.pack newInstructions }
+                return $ s { stateScreen = scr { recipeInputInstructions = T.pack newInstructions } }
 
         Vty.EvKey (Vty.KChar 'd') [Vty.MMeta] ->
             if BF.focusGetCurrent f /= Just ingredientsName || length il == 0
                 then B.continue s
                 else let Just (i,_) = BL.listSelectedElement il
                          newList = BL.listRemove i il
-                     in B.continue $ CyanideState conn $ scr { recipeInputIngredientList = newList }
+                     in B.continue $ s { stateScreen = scr { recipeInputIngredientList = newList } }
 
         Vty.EvKey (Vty.KEnter) [] -> do
             let name = getEditorLine nameEd
@@ -159,24 +160,24 @@ handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd garnishEd gl il i
                 Just oldRecipe -> do
                     newRecipe <- liftIO $ Recipes.updateRecipe conn (Types.recipeId oldRecipe) (name,garnish,instr,mGlass,recipeFor,ingredients)
                     newScr <- liftIO $ prev (Just (newRecipe,mGlass,ingredients))
-                    B.continue $ CyanideState conn newScr
+                    B.continue $ s { stateScreen = newScr }
                 Nothing -> do
                     newRecipe <- liftIO $ Recipes.newRecipe conn (name,garnish,instr,mGlass,recipeFor,ingredients)
                     newScr <- liftIO $ prev (Just (newRecipe,mGlass,ingredients))
-                    B.continue $ CyanideState conn newScr
+                    B.continue $ s { stateScreen = newScr }
 
         ev -> if BF.focusGetCurrent (f) == Just recipeName then do
                     newEdit <- BE.handleEditorEvent ev nameEd
-                    B.continue $ CyanideState conn $ scr { recipeInputName = newEdit }
+                    B.continue $ s { stateScreen = scr { recipeInputName = newEdit } }
               else if BF.focusGetCurrent (f) == Just garnishName then do
                     newEdit <- BE.handleEditorEvent ev garnishEd
-                    B.continue $ CyanideState conn $ scr { recipeInputGarnish = newEdit }
+                    B.continue $ s { stateScreen = scr { recipeInputGarnish = newEdit } }
               else if BF.focusGetCurrent (f) == Just glassName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev gl
-                    B.continue $ CyanideState conn $ scr { recipeInputGlass = newList }
+                    B.continue $ s { stateScreen = scr { recipeInputGlass = newList } }
               else if BF.focusGetCurrent (f) == Just ingredientsName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev il
-                    B.continue $ CyanideState conn $ scr { recipeInputIngredientList = newList }
+                    B.continue $ s { stateScreen = scr { recipeInputIngredientList = newList } }
               else B.continue s
 
   where ingredientListItemToName (Types.IngredientListItem _ _ _ (Left i)) =
@@ -187,7 +188,7 @@ handleEvent s@(CyanideState conn scr@(RecipeInputScreen nameEd garnishEd gl il i
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (RecipeInputScreen nameEd garnishEd gl il instr recipeFor mr f _)) = [ui]
+drawUI (CyanideState conn _ (RecipeInputScreen nameEd garnishEd gl il instr recipeFor mr f _)) = [ui]
     where nameEdRndrd = BF.withFocusRing f (BE.renderEditor drawEdit) nameEd
           garnishEdRndrd = BF.withFocusRing f (BE.renderEditor drawEdit) garnishEd
           glst = BF.withFocusRing f (BL.renderList drawListGlass) gl

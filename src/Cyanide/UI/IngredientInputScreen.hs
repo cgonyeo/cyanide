@@ -35,17 +35,17 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(IngredientInputScreen ed cl ul f si mi prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(IngredientInputScreen ed cl ul f si mi prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn $ prev Nothing
+            B.continue $ s { stateScreen = prev Nothing }
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
-            in B.continue $ CyanideState conn $ scr { ingredientInputFocusRing = newFocus }
+            in B.continue $ s { stateScreen = scr { ingredientInputFocusRing = newFocus } }
 
         Vty.EvKey (Vty.KChar 'c') [Vty.MMeta] ->
-            B.continue $ CyanideState conn $ scr { ingredientInputNotForRecipes = not si }
+            B.continue $ s { stateScreen = scr { ingredientInputNotForRecipes = not si } }
 
         Vty.EvKey (Vty.KEnter) [] -> do
             mIngredientName <- getAndCheckEditorName (isNothing mi)
@@ -57,24 +57,24 @@ handleEvent s@(CyanideState conn scr@(IngredientInputScreen ed cl ul f si mi pre
                         Just (_,unit) = BL.listSelectedElement ul
 
                     newIngredient <- liftIO $ Ingredients.updateIngredient conn (Types.ingredientId oldIng) (n,iclass,unit,si)
-                    B.continue $ CyanideState conn $ prev (Just (newIngredient,iclass))
+                    B.continue $ s { stateScreen = prev (Just (newIngredient,iclass)) }
                 -- We're creating a new ingredient
                 (Nothing,Just n) -> do
                     let Just (_,iclass) = BL.listSelectedElement cl
                         Just (_,unit) = BL.listSelectedElement ul
 
                     newIngredient <- liftIO $ Ingredients.newIngredient conn (n,iclass,unit,si)
-                    B.continue $ CyanideState conn $ prev (Just (newIngredient,iclass))
+                    B.continue $ s { stateScreen = prev (Just (newIngredient,iclass)) }
 
         ev -> if BF.focusGetCurrent (f) == Just editorName then do
                     newEdit <- BE.handleEditorEvent ev ed
-                    B.continue $ CyanideState conn $ scr { ingredientInputName = newEdit }
+                    B.continue $ s { stateScreen = scr { ingredientInputName = newEdit } }
               else if BF.focusGetCurrent (f) == Just classesName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev cl
-                    B.continue $ CyanideState conn $ scr { ingredientInputClass = newList }
+                    B.continue $ s { stateScreen = scr { ingredientInputClass = newList } }
               else if BF.focusGetCurrent (f) == Just unitsName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev ul
-                    B.continue $ CyanideState conn $ scr { ingredientInputUnit = newList }
+                    B.continue $ s { stateScreen = scr { ingredientInputUnit = newList } }
               else B.continue s
 
   where getAndCheckEditorName mustBeUnique = do
@@ -93,7 +93,7 @@ handleEvent s@(CyanideState conn scr@(IngredientInputScreen ed cl ul f si mi pre
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (IngredientInputScreen e cl ul f s mi _)) = [ui]
+drawUI (CyanideState conn _ (IngredientInputScreen e cl ul f s mi _)) = [ui]
     where edt = BF.withFocusRing f (BE.renderEditor drawEdit) e
           clst = BF.withFocusRing f (BL.renderList drawListClass) cl
           ulst = BF.withFocusRing f (BL.renderList drawListUnit) ul

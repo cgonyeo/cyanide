@@ -41,15 +41,15 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(RecipeInputIngredientScreen rname amountEd unitEd filterEd ingrListOrig ingrList f goBack)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(RecipeInputIngredientScreen rname amountEd unitEd filterEd ingrListOrig ingrList f goBack)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
             let newScr = goBack Nothing
-            in B.continue $ CyanideState conn newScr
+            in B.continue $ s { stateScreen = newScr }
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
-            in B.continue $ CyanideState conn $ scr { recipeInputIngredientFocusRing = newFocus }
+            in B.continue $ s { stateScreen = scr { recipeInputIngredientFocusRing = newFocus } }
 
         Vty.EvKey Vty.KEnter [] -> do
             case parseAmount $ fromJust $ getEditorLine amountEd of
@@ -62,18 +62,18 @@ handleEvent s@(CyanideState conn scr@(RecipeInputIngredientScreen rname amountEd
                         Just (_,i) -> do
                             ingrItem <- liftIO $ makeIngrItem conn amtNum amtDen unitInput i
                             let newScr = goBack (Just ingrItem)
-                            B.continue $ CyanideState conn newScr
+                            B.continue $ s { stateScreen = newScr }
 
 
         ev -> if BF.focusGetCurrent (f) == Just amountName then do
                     newEdit <- BE.handleEditorEvent ev amountEd
-                    B.continue $ CyanideState conn $ scr { recipeInputIngredientAmount = newEdit }
+                    B.continue $ s { stateScreen = scr { recipeInputIngredientAmount = newEdit } }
               else if BF.focusGetCurrent (f) == Just unitName then do
                     newEdit <- BE.handleEditorEvent ev unitEd
-                    B.continue $ CyanideState conn $ scr { recipeInputIngredientUnit = newEdit }
+                    B.continue $ s { stateScreen = scr { recipeInputIngredientUnit = newEdit } }
               else if BF.focusGetCurrent (f) == Just ingrListName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev ingrList
-                    B.continue $ CyanideState conn $ scr { recipeInputIngredientOptionsList = newList }
+                    B.continue $ s { stateScreen = scr { recipeInputIngredientOptionsList = newList } }
               else if BF.focusGetCurrent (f) == Just filterName then do
                     -- Update the editor
                     newEdit <- BE.handleEditorEvent ev filterEd
@@ -82,9 +82,9 @@ handleEvent s@(CyanideState conn scr@(RecipeInputIngredientScreen rname amountEd
                                             (Just text) -> filter (filterFunc text) ingrListOrig
                                             Nothing -> ingrListOrig
                     let newList = BL.listReplace (V.fromList filteredList) (Just 0) ingrList
-                    B.continue $ CyanideState conn $ scr { recipeInputIngredientFilter = newEdit
-                                                         , recipeInputIngredientOptionsList = newList
-                                                         }
+                    B.continue $ s { stateScreen = scr { recipeInputIngredientFilter = newEdit
+                                                       , recipeInputIngredientOptionsList = newList
+                                                       } }
               else B.continue s
 
   where filterFunc filterText i = L.isInfixOf (T.unpack $ T.toLower filterText) (T.unpack $ T.toLower (getListItemName i))
@@ -122,7 +122,7 @@ handleEvent s@(CyanideState conn scr@(RecipeInputIngredientScreen rname amountEd
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (RecipeInputIngredientScreen rname amountEd unitEd filterEd _ ingrList f goBack)) = [ui]
+drawUI (CyanideState conn _ (RecipeInputIngredientScreen rname amountEd unitEd filterEd _ ingrList f goBack)) = [ui]
     where amountRenderedEd = BF.withFocusRing f (BE.renderEditor drawEdit) amountEd
           unitRenderedEd = BF.withFocusRing f (BE.renderEditor drawEdit) unitEd
           filterRenderedEd = BF.withFocusRing f (BE.renderEditor drawEdit) filterEd

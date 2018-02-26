@@ -47,23 +47,23 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn MainSelectionScreen) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ MainSelectionScreen) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KChar 'r') [] -> do
             scr <- liftIO $ getRecipeSelectionScreen conn
-            B.continue $ CyanideState conn scr
+            B.continue $ s { stateScreen = scr }
 
         Vty.EvKey (Vty.KChar 'g') [] -> do
             scr <- liftIO $ getGlassSelectionScreen conn
-            B.continue $ CyanideState conn scr
+            B.continue $ s { stateScreen = scr }
 
         Vty.EvKey (Vty.KChar 'c') [] -> do
             scr <- liftIO $ getIngredientClassSelectionScreen conn
-            B.continue $ CyanideState conn scr
+            B.continue $ s { stateScreen = scr }
 
         Vty.EvKey (Vty.KChar 'i') [] -> do
             scr <- liftIO $ getIngredientSelectionScreen conn
-            B.continue $ CyanideState conn scr
+            B.continue $ s { stateScreen = scr }
 
         Vty.EvKey Vty.KEsc [] -> B.halt s
 
@@ -71,7 +71,7 @@ handleEvent s@(CyanideState conn MainSelectionScreen) (B.VtyEvent e) =
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn MainSelectionScreen) = 
+drawUI (CyanideState conn _ MainSelectionScreen) = 
     [ BC.center
         $ B.hLimit 80
         $ B.vLimit 25

@@ -23,25 +23,25 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (IngredientClassDeletionScreen l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ (IngredientClassDeletionScreen l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn (IngredientClassSelectionScreen l)
+            B.continue $ s { stateScreen = (IngredientClassSelectionScreen l) }
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn (IngredientClassSelectionScreen l)
+            B.continue $ s { stateScreen = (IngredientClassSelectionScreen l) }
 
         Vty.EvKey (Vty.KChar 'y') [] -> do
             let Just (i,glass) = BL.listSelectedElement l
                 newList = BL.listRemove i l
             liftIO $ IngredientClasses.deleteIngredientClass conn glass
-            B.continue $ CyanideState conn (IngredientClassSelectionScreen newList)
+            B.continue $ s { stateScreen = (IngredientClassSelectionScreen newList) }
 
         _ -> B.continue s
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (IngredientClassDeletionScreen l)) = [ui]
+drawUI (CyanideState conn _ (IngredientClassDeletionScreen l)) = [ui]
     where Just (_,(Types.IngredientClass _ n)) = BL.listSelectedElement l
           ui = BC.center
                $ B.hLimit 80

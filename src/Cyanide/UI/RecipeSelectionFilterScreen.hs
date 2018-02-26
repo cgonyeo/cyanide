@@ -34,34 +34,34 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(RecipeSelectionFilterScreen rlf@(RecipeListFilter avail icl gl) f prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(RecipeSelectionFilterScreen rlf@(RecipeListFilter avail icl gl) f prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] -> do
             newScr <- liftIO $ prev Nothing
-            B.continue $ CyanideState conn newScr
+            B.continue $ s { stateScreen = newScr }
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
-            in B.continue $ CyanideState conn $ scr { recipeFilterFocusRing = newFocus }
+            in B.continue $ s { stateScreen = scr { recipeFilterFocusRing = newFocus } }
 
         Vty.EvKey (Vty.KChar 'a') [] ->
-            B.continue $ CyanideState conn $ scr { recipeFilter = rlf { onlyWithAvailIngredients = not avail } }
+            B.continue $ s { stateScreen = scr { recipeFilter = rlf { onlyWithAvailIngredients = not avail } } }
 
         Vty.EvKey (Vty.KEnter) [] -> do
             newScr <- liftIO $ prev (Just rlf)
-            B.continue $ CyanideState conn newScr
+            B.continue $ s { stateScreen = newScr }
 
         ev -> if BF.focusGetCurrent (f) == Just ingredientClassesName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev icl
-                    B.continue $ CyanideState conn $ scr { recipeFilter = rlf { limitToIngredientClass = newList } }
+                    B.continue $ s { stateScreen = scr { recipeFilter = rlf { limitToIngredientClass = newList } } }
               else if BF.focusGetCurrent (f) == Just glassesName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev gl
-                    B.continue $ CyanideState conn $ scr { recipeFilter = rlf { limitToGlass = newList } }
+                    B.continue $ s { stateScreen = scr { recipeFilter = rlf { limitToGlass = newList } } }
               else B.continue s
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (RecipeSelectionFilterScreen rlf@(RecipeListFilter avail icl gl) f prev)) = [ui]
+drawUI (CyanideState conn _ (RecipeSelectionFilterScreen rlf@(RecipeListFilter avail icl gl) f prev)) = [ui]
     where icList = BF.withFocusRing f (BL.renderList drawListIngredientClass) icl
           gList  = BF.withFocusRing f (BL.renderList drawListGlass) gl
 

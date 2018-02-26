@@ -23,25 +23,25 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn (GlassDeletionScreen l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ (GlassDeletionScreen l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn (GlassSelectionScreen l)
+            B.continue $ s { stateScreen = (GlassSelectionScreen l) }
 
         Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ CyanideState conn (GlassSelectionScreen l)
+            B.continue $ s { stateScreen = (GlassSelectionScreen l) }
 
         Vty.EvKey (Vty.KChar 'y') [] -> do
             let Just (i,glass) = BL.listSelectedElement l
                 newList = BL.listRemove i l
             liftIO $ Glasses.deleteGlass conn glass
-            B.continue $ CyanideState conn (GlassSelectionScreen newList)
+            B.continue $ s { stateScreen = (GlassSelectionScreen newList) }
 
         _ -> B.continue s
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (GlassDeletionScreen l)) = [ui]
+drawUI (CyanideState conn _ (GlassDeletionScreen l)) = [ui]
     where Just (_,(Types.Glass _ n)) = BL.listSelectedElement l
           ui = BC.center
                $ B.hLimit 80

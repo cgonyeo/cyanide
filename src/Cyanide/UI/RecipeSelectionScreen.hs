@@ -55,20 +55,20 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(RecipeSelectionScreen l orig toICs toGs toAs se fltr f)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(RecipeSelectionScreen l orig toICs toGs toAs se fltr f)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn MainSelectionScreen
+            B.continue $ s { stateScreen = MainSelectionScreen }
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
-            in B.continue $ CyanideState conn $ scr { recipeListFocusRing = newFocus }
+            in B.continue $ s { stateScreen = scr { recipeListFocusRing = newFocus } }
 
         Vty.EvKey (Vty.KChar 'f') [Vty.MMeta] ->
             let focus = BF.focusRing [ RecipeSelectionFilter.ingredientClassesName
                                      , RecipeSelectionFilter.glassesName
                                      ]
-            in B.continue $ CyanideState conn $ RecipeSelectionFilterScreen fltr focus goBack
+            in B.continue $ s { stateScreen = RecipeSelectionFilterScreen fltr focus goBack }
           where goBack :: Maybe RecipeListFilter -> IO CyanideScreen
                 goBack Nothing = return $ scr
                 goBack (Just rlf@(RecipeListFilter avail icl gl)) = do
@@ -85,7 +85,7 @@ handleEvent s@(CyanideState conn scr@(RecipeSelectionScreen l orig toICs toGs to
 
         Vty.EvKey (Vty.KChar 'n') [Vty.MMeta] -> do
             newScr <- liftIO $ RecipeInput.newRecipeInputScreen conn Nothing [] Nothing Nothing goBack
-            B.continue $ CyanideState conn newScr
+            B.continue $ s { stateScreen = newScr }
           where goBack Nothing = return scr
                 goBack (Just _) = newRecipeSelectionScreen conn
 
@@ -95,7 +95,7 @@ handleEvent s@(CyanideState conn scr@(RecipeSelectionScreen l orig toICs toGs to
                 Just (j,r) -> do
                     glass <- liftIO $ Recipes.getGlassForRecipe conn r
                     ingrs <- liftIO $ Recipes.getIngredientsForRecipe conn r
-                    B.continue $ CyanideState conn $ RecipeDetailScreen r glass ingrs (goBack j)
+                    B.continue $ s { stateScreen = RecipeDetailScreen r glass ingrs (goBack j) }
           where goBack j Nothing = let newList = BL.listRemove j l
                                    in scr { recipeList = newList }
                 goBack _ (Just (r,_,_)) = let newList = BL.listModify (\_ -> r) l
@@ -103,7 +103,7 @@ handleEvent s@(CyanideState conn scr@(RecipeSelectionScreen l orig toICs toGs to
 
         ev -> if BF.focusGetCurrent (f) == Just recipesName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev l
-                    B.continue $ CyanideState conn $ scr { recipeList = newList }
+                    B.continue $ s { stateScreen = scr { recipeList = newList } }
               else if BF.focusGetCurrent (f) == Just searchName then do
                     newEdit <- BE.handleEditorEvent ev se
                     let RecipeListFilter avail icl gl = fltr
@@ -112,9 +112,9 @@ handleEvent s@(CyanideState conn scr@(RecipeSelectionScreen l orig toICs toGs to
                         searchText = getEditorLine newEdit
                         filteredRecipes = genNewList orig avail ic g searchText
                         newList = BL.list recipesName (V.fromList filteredRecipes) 1
-                    B.continue $ CyanideState conn $ scr { recipeListSearch = newEdit
-                                                         , recipeList = newList
-                                                         }
+                    B.continue $ s { stateScreen = scr { recipeListSearch = newEdit
+                                                       , recipeList = newList
+                                                       } }
               else B.continue s
   where genNewList :: [Types.Recipe] -> Bool -> Maybe Types.IngredientClass -> Maybe Types.Glass -> Maybe T.Text -> [Types.Recipe]
         genNewList recipes a mic mg search =
@@ -156,7 +156,7 @@ handleEvent s@(CyanideState conn scr@(RecipeSelectionScreen l orig toICs toGs to
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (RecipeSelectionScreen l orig _ _ _ se fltr f)) = [ui]
+drawUI (CyanideState conn _ (RecipeSelectionScreen l orig _ _ _ se fltr f)) = [ui]
     where editor = BF.withFocusRing f (BE.renderEditor drawEdit) se
           recipeList = BF.withFocusRing f (BL.renderList listDrawRecipe) l
           ui = BC.center

@@ -26,11 +26,11 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(RecipeDetailScreen r g is prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(RecipeDetailScreen r g is prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KChar 'e') [] -> do
             newScr <- liftIO $ RecipeInput.newRecipeInputScreen conn g is (recipeFor $ Types.recipeName r) (Just r) goBack 
-            B.continue $ CyanideState conn newScr
+            B.continue $ s { stateScreen = newScr }
           where goBack (Just (r,g,is)) = return $ RecipeDetailScreen r g is prev
                 goBack Nothing = return $ scr
 
@@ -38,17 +38,17 @@ handleEvent s@(CyanideState conn scr@(RecipeDetailScreen r g is prev)) (B.VtyEve
                 recipeFor (Right i) = Just i
 
         Vty.EvKey (Vty.KChar 'd') [Vty.MMeta] -> do
-            B.continue $ CyanideState conn $ RecipeDeletionScreen r goBack
+            B.continue $ s { stateScreen = RecipeDeletionScreen r goBack }
           where goBack True = prev Nothing
                 goBack False = scr
 
-        Vty.EvKey (Vty.KEsc) [] -> B.continue $ CyanideState conn (prev $ Just (r,g,is))
+        Vty.EvKey (Vty.KEsc) [] -> B.continue $ s { stateScreen = (prev $ Just (r,g,is)) }
 
         ev -> B.continue s
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (RecipeDetailScreen r g is _)) =
+drawUI (CyanideState conn _ (RecipeDetailScreen r g is _)) =
     [ BC.center
         $ B.hLimit 80
         $ B.vLimit 25

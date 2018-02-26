@@ -24,10 +24,10 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn scr@(GlassInputScreen ed mg l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(GlassInputScreen ed mg l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ CyanideState conn (GlassSelectionScreen l)
+            B.continue $ s { stateScreen = (GlassSelectionScreen l) }
 
         Vty.EvKey (Vty.KEnter) [] -> do
             let newGlassNames = BE.getEditContents ed
@@ -40,20 +40,20 @@ handleEvent s@(CyanideState conn scr@(GlassInputScreen ed mg l)) (B.VtyEvent e) 
                         (Just (Types.Glass i _),[]) -> do
                             newGlass <- liftIO $ Glasses.updateGlass conn i newGlassName
                             let newList = BL.listModify (\_ -> newGlass) l
-                            B.continue $ CyanideState conn (GlassSelectionScreen newList)
+                            B.continue $ s { stateScreen = (GlassSelectionScreen newList) }
                         (Nothing,[]) -> do
                             newGlass <- liftIO $ Glasses.newGlass conn newGlassName
                             let newList = BL.listInsert (length l) newGlass l
-                            B.continue $ CyanideState conn (GlassSelectionScreen newList)
+                            B.continue $ s { stateScreen = (GlassSelectionScreen newList) }
                         _ -> B.continue s
 
         ev -> do
             newEdit <- BE.handleEditorEvent e ed
-            B.continue $ CyanideState conn scr { glassCreationName = newEdit }
+            B.continue $ s { stateScreen = scr { glassCreationName = newEdit } }
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn (GlassInputScreen e mg l)) = [ui]
+drawUI (CyanideState conn _ (GlassInputScreen e mg l)) = [ui]
     where prompt = case mg of
                     Just (Types.Glass _ n) -> "What do you want to rename \"" `T.append` n `T.append` "\" to?"
                     Nothing -> "What glass do you want to create?"
