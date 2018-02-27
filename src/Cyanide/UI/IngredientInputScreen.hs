@@ -28,14 +28,11 @@ editorName = "IngredientCreationName"
 classesName :: Name
 classesName = "IngredientCreationClassList"
 
-unitsName :: Name
-unitsName = "IngredientCreationUnitList"
-
 attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn _ scr@(IngredientInputScreen ed cl ul f si mi prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(IngredientInputScreen ed cl f si mi prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
             B.continue $ s { stateScreen = prev Nothing }
@@ -54,16 +51,14 @@ handleEvent s@(CyanideState conn _ scr@(IngredientInputScreen ed cl ul f si mi p
                 -- We're updating an existing ingredient
                 (Just oldIng,Just n) -> do
                     let Just (_,iclass) = BL.listSelectedElement cl
-                        Just (_,unit) = BL.listSelectedElement ul
 
-                    newIngredient <- liftIO $ Ingredients.updateIngredient conn (Types.ingredientId oldIng) (n,iclass,unit,si)
+                    newIngredient <- liftIO $ Ingredients.updateIngredient conn (Types.ingredientId oldIng) (n,iclass,si)
                     B.continue $ s { stateScreen = prev (Just (newIngredient,iclass)) }
                 -- We're creating a new ingredient
                 (Nothing,Just n) -> do
                     let Just (_,iclass) = BL.listSelectedElement cl
-                        Just (_,unit) = BL.listSelectedElement ul
 
-                    newIngredient <- liftIO $ Ingredients.newIngredient conn (n,iclass,unit,si)
+                    newIngredient <- liftIO $ Ingredients.newIngredient conn (n,iclass,si)
                     B.continue $ s { stateScreen = prev (Just (newIngredient,iclass)) }
 
         ev -> if BF.focusGetCurrent (f) == Just editorName then do
@@ -72,9 +67,6 @@ handleEvent s@(CyanideState conn _ scr@(IngredientInputScreen ed cl ul f si mi p
               else if BF.focusGetCurrent (f) == Just classesName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev cl
                     B.continue $ s { stateScreen = scr { ingredientInputClass = newList } }
-              else if BF.focusGetCurrent (f) == Just unitsName then do
-                    newList <- BL.handleListEventVi BL.handleListEvent ev ul
-                    B.continue $ s { stateScreen = scr { ingredientInputUnit = newList } }
               else B.continue s
 
   where getAndCheckEditorName mustBeUnique = do
@@ -93,10 +85,9 @@ handleEvent s@(CyanideState conn _ scr@(IngredientInputScreen ed cl ul f si mi p
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn _ (IngredientInputScreen e cl ul f s mi _)) = [ui]
+drawUI (CyanideState conn _ (IngredientInputScreen e cl f s mi _)) = [ui]
     where edt = BF.withFocusRing f (BE.renderEditor drawEdit) e
           clst = BF.withFocusRing f (BL.renderList drawListClass) cl
-          ulst = BF.withFocusRing f (BL.renderList drawListUnit) ul
 
           recipeState = if s then B.txt "Not for use in cocktails"
                              else B.txt "Available to cocktails"
@@ -118,12 +109,8 @@ drawUI (CyanideState conn _ (IngredientInputScreen e cl ul f s mi _)) = [ui]
                                          , BB.border $ edt
                                          ]
                             , BC.hCenter $ B.padBottom (B.Pad 1) $ recipeState
-                            , B.hBox [ B.vBox [ BC.hCenter $ B.txt "Class"
-                                              , BB.border $ clst
-                                              ]
-                                     , B.vBox [ BC.hCenter $ B.txt "Unit"
-                                              , BB.border $ ulst
-                                              ]
+                            , B.vBox [ BC.hCenter $ B.txt "Class"
+                                     , BB.border $ clst
                                      ]
                             , renderInstructions [ ("Enter",enterAction)
                                                  , ("Alt-c","Toggle cocktail availability")
@@ -139,9 +126,3 @@ drawListClass False Nothing = BC.hCenter $ B.txt " "
 drawListClass True Nothing = BC.hCenter $ B.txt "*"
 drawListClass False (Just (Types.IngredientClass _ n)) = BC.hCenter $ B.txt n
 drawListClass True (Just (Types.IngredientClass _ n)) = BC.hCenter $ B.txt $ "* " `T.append` n `T.append` " *"
-
-drawListUnit :: Bool -> T.Text -> B.Widget Name
-drawListUnit False "" = BC.hCenter $ B.txt " "
-drawListUnit True "" = BC.hCenter $ B.txt "*"
-drawListUnit False t = BC.hCenter $ B.txt t
-drawListUnit True t = BC.hCenter $ B.txt $ "* " `T.append` t `T.append` " *"

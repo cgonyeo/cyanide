@@ -17,7 +17,7 @@ import Cyanide.Data.IngredientClasses
 
 getRecipes :: DBConn -> IO [Recipe]
 getRecipes conn = do
-    results <- P.query_ conn 
+    results <- P.query_ conn
         "SELECT recipes.id                       \
        \      , recipes.name                     \
        \      , recipes.garnish                  \
@@ -37,9 +37,9 @@ fillInIngredient _ (id,Just name,garnish,instr,_) =
 fillInIngredient _ (id,Nothing,garnish,instr,Nothing) =
     return $ Recipe id (Left "") garnish instr
 
-getRecipesUsingIngredientClass :: DBConn -> Int -> IO [Recipe]
-getRecipesUsingIngredientClass conn icId = do
-    results <- P.query conn 
+getRecipesUsingIngredientClass :: DBConn -> IngredientClass -> IO [Recipe]
+getRecipesUsingIngredientClass conn ic = do
+    results <- P.query conn
         "SELECT recipes.id                      \
        \      , recipes.name                    \
        \      , recipes.garnish                 \
@@ -49,12 +49,12 @@ getRecipesUsingIngredientClass conn icId = do
        \ INNER JOIN ingredients_to_recipes      \
        \ ON recipes.id = ingredients_to_recipes.recipe_id \
        \ WHERE ingredients_to_recipes.ingredient_class_id = ? \
-       \ ORDER BY recipes.name ASC" (P.Only icId)
+       \ ORDER BY recipes.name ASC" (P.Only $ ingredientClassId ic)
     forM results $ fillInIngredient conn
 
 getRecipesUsingIngredient :: DBConn -> Ingredient -> IO [Recipe]
-getRecipesUsingIngredient conn (Ingredient i _ _ _ _ _) = do
-    results <- P.query conn 
+getRecipesUsingIngredient conn i = do
+    results <- P.query conn
         "SELECT recipes.id                      \
        \      , recipes.name                    \
        \      , recipes.garnish                 \
@@ -64,19 +64,19 @@ getRecipesUsingIngredient conn (Ingredient i _ _ _ _ _) = do
        \ INNER JOIN ingredients_to_recipes      \
        \ ON recipes.id = ingredients_to_recipes.recipe_id \
        \ WHERE ingredients_to_recipes.ingredient_id = ? \
-       \ ORDER BY recipes.name ASC" (P.Only i)
+       \ ORDER BY recipes.name ASC" (P.Only $ ingredientId i)
     forM results $ fillInIngredient conn
 
 getRecipeForIngredient :: DBConn -> Ingredient -> IO (Maybe Recipe)
-getRecipeForIngredient conn (Ingredient i _ _ _ _ _) = do
-    rs <- P.query conn 
+getRecipeForIngredient conn i = do
+    rs <- P.query conn
         "SELECT recipes.id                      \
        \      , recipes.name                    \
        \      , recipes.garnish                 \
        \      , recipes.instructions            \
        \      , recipes.for_ingredient_id       \
        \ FROM recipes                           \
-       \ WHERE recipes.for_ingredient_id = ?" (P.Only i)
+       \ WHERE recipes.for_ingredient_id = ?" (P.Only $ ingredientId i)
     case rs of
         [r] -> do
             recipe <- fillInIngredient conn r
@@ -109,7 +109,7 @@ getIngredientsForRecipe conn (Recipe i _ _ _) = do
        \      , unit                 \
        \ FROM ingredients_to_recipes \
        \ WHERE recipe_id = ?" (P.Only i)
-    forM ingList $ \(mIngId,mClassId,num,den,u) -> 
+    forM ingList $ \(mIngId,mClassId,num,den,u) ->
         case (mIngId,mClassId) of
             (Just ingId,Nothing) -> do
                 ing <- getIngredient conn ingId
@@ -140,7 +140,7 @@ getRecipesToGlasses conn = do
 getRecipesIngredientAvailability :: DBConn -> IO [(Int,Bool)]
 getRecipesIngredientAvailability conn = do
     P.query_ conn
-        "SELECT query1.id, query1.avail AND query2.avail FROM (SELECT recipes.id, coalesce(bool_and(ingredients.amount > 0),FALSE) AS avail FROM recipes INNER JOIN ingredients_to_recipes ON recipe_id = recipes.id INNER JOIN ingredient_classes ON ingredient_class_id = ingredient_classes.id LEFT OUTER JOIN ingredients ON ingredients.class = ingredient_classes.id GROUP BY recipes.id) AS query1 INNER JOIN (SELECT recipes.id, bool_and(ingredients.amount > 0) as avail FROM recipes INNER JOIN ingredients_to_recipes ON ingredients_to_recipes.recipe_id = recipes.id INNER JOIN ingredients ON ingredient_id = ingredients.id GROUP BY recipes.id) AS query2 ON query1.id = query2.id order by query1.id"
+        "SELECT query1.id, query1.avail AND query2.avail FROM (SELECT query1_1.id, coalesce(bool_and(avail),FALSE) AS avail FROM (SELECT recipes.id, ingredient_classes.id as icid, coalesce(bool_or(ingredients.available), FALSE) AS avail FROM recipes INNER JOIN ingredients_to_recipes ON recipe_id = recipes.id INNER JOIN ingredient_classes ON ingredient_class_id = ingredient_classes.id LEFT OUTER JOIN ingredients ON ingredients.class = ingredient_classes.id GROUP BY (ingredient_classes.id,recipes.id)) AS query1_1 GROUP BY query1_1.id) AS query1 INNER JOIN (SELECT recipes.id, bool_and(ingredients.available) as avail FROM recipes INNER JOIN ingredients_to_recipes ON ingredients_to_recipes.recipe_id = recipes.id INNER JOIN ingredients ON ingredient_id = ingredients.id GROUP BY recipes.id) AS query2 ON query1.id = query2.id order by query1.id"
 
 newRecipe :: DBConn -> (Maybe T.Text,T.Text,T.Text,Maybe Glass,Maybe Ingredient,[IngredientListItem]) -> IO Recipe
 newRecipe conn (mName,garnish,instr,mGlass,mIngr,ingredients) = do

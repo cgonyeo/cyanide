@@ -7,51 +7,59 @@ import qualified Data.Text as T
 
 import Cyanide.Data.Types
 import Cyanide.Data.Postgres
+import Cyanide.Data.IngredientClasses
 import Data.Time.Clock
+import Control.Monad
+
+loadClass :: DBConn -> (Int,T.Text,Maybe Int,Bool,Bool) -> IO Ingredient
+loadClass _ (ingId,name,Nothing,avail,notForRecipes) = return $ Ingredient ingId name Nothing avail notForRecipes
+loadClass conn (ingId,name,Just classId,avail,notForRecipes) = do
+    ic <- getIngredientClass conn classId
+    return $ Ingredient ingId name (Just ic) avail notForRecipes
 
 getIngredients :: DBConn -> IO [Ingredient]
-getIngredients conn = P.query_ conn 
+getIngredients conn = do
+    ingData <- P.query_ conn
         "SELECT ingredients.id                        \
        \      , ingredients.name                      \
        \      , ingredients.class                     \
-       \      , ingredients.amount                    \
-       \      , ingredients.unit                      \
+       \      , ingredients.available                 \
        \      , ingredients.notForRecipes             \
        \ FROM ingredients                             \
        \ ORDER BY ingredients.name ASC"
+    forM ingData (loadClass conn)
 
 getIngredient :: DBConn -> Int -> IO Ingredient
 getIngredient conn ingredientId = do
-    [i] <- P.query conn 
+    [i] <- P.query conn
         "SELECT ingredients.id                        \
        \      , ingredients.name                      \
        \      , ingredients.class                     \
-       \      , ingredients.amount                    \
-       \      , ingredients.unit                      \
+       \      , ingredients.available                 \
        \      , ingredients.notForRecipes             \
        \ FROM ingredients                             \
        \ WHERE ingredients.id = ?                     \
        \ ORDER BY ingredients.id ASC" (P.Only ingredientId)
-    return i
+    loadClass conn i
 
-newIngredient :: DBConn -> (T.Text,Maybe IngredientClass,T.Text,Bool) -> IO Ingredient
-newIngredient conn (n,mic,u,s) = do
+newIngredient :: DBConn -> (T.Text,Maybe IngredientClass,Bool) -> IO Ingredient
+newIngredient conn (n,mic,s) = do
     let micId = mic >>= (Just . ingredientClassId)
-    [P.Only i] <- P.query conn "INSERT INTO ingredients (name,class,amount,unit,notForRecipes) VALUES (?,?,?,?,?) RETURNING (id)" (n,micId,0 :: Int,u,s)
-    return $ Ingredient i n micId 0 u s
+    [P.Only i] <- P.query conn "INSERT INTO ingredients (name,class,available,notForRecipes) VALUES (?,?,?,?) RETURNING (id)" (n,micId,False,s)
+    loadClass conn (i,n,micId,False,s)
 
-updateIngredient :: DBConn -> Int -> (T.Text,Maybe IngredientClass,T.Text,Bool) -> IO Ingredient
-updateIngredient conn i (n,mic,u,s) = do
+updateIngredient :: DBConn -> Int -> (T.Text,Maybe IngredientClass,Bool) -> IO Ingredient
+updateIngredient conn i (n,mic,s) = do
     let micId = mic >>= (Just . ingredientClassId)
-    P.execute conn "UPDATE ingredients SET name = ?, class = ?, unit = ?, notForRecipes = ? WHERE id = ?" (n,micId,u,s,i)
+    P.execute conn "UPDATE ingredients SET name = ?, class = ?, notForRecipes = ? WHERE id = ?" (n,micId,s,i)
     getIngredient conn i
 
-updateIngredientAmount :: DBConn -> (Ingredient,Int) -> IO ()
-updateIngredientAmount conn ((Ingredient i _ _ _ _ _),a) = do
-    P.execute conn "UPDATE ingredients SET amount = ? WHERE id = ?" (a,i)
+updateIngredientAvailability :: DBConn -> (Ingredient,Bool) -> IO ()
+updateIngredientAvailability conn (i,a) = do
+    P.execute conn "UPDATE ingredients SET available = ? WHERE id = ?" (a,ingredientId i)
     return ()
 
 deleteIngredient :: DBConn -> Ingredient -> IO ()
-deleteIngredient conn (Ingredient i _ _ _ _ _) = do
-    P.execute conn "DELETE FROM ingredients WHERE id = ?" (P.Only i)
+deleteIngredient conn i = do
+    P.execute conn "DELETE FROM ingredients WHERE id = ?" (P.Only (ingredientId i))
     return ()

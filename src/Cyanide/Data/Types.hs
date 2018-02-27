@@ -31,13 +31,11 @@ instance FromRow IngredientClass
 data Ingredient = Ingredient
     { ingredientId    :: Int
     , ingredientName  :: T.Text
-    , ingredientClass :: Maybe Int
-    , amount          :: Int
-    , unit            :: T.Text
+    , ingredientClass :: Maybe IngredientClass
+    , available       :: Bool
     , notForRecipes   :: Bool
     }
     deriving(Generic,Show,Eq)
-instance FromRow Ingredient
 
 data Glass = Glass
     { glassId   :: Int
@@ -50,6 +48,8 @@ data Purchase = Purchase
     { date       :: Day
     , location   :: T.Text
     , price      :: Int
+    , volume     :: Int
+    , unit       :: T.Text
     }
     deriving(Generic,Show,Eq)
 instance FromRow Purchase

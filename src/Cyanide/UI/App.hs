@@ -97,17 +97,17 @@ handleEvent s@(CyanideState _ _ (RecipeInputIngredientScreen _ _ _ _ _ _ _ _)) e
     RecipeInputIngredientScreen.handleEvent s e
 handleEvent s@(CyanideState _ _ (RecipeDeletionScreen _ _)) e =
     RecipeDeletionScreen.handleEvent s e
-handleEvent s@(CyanideState _ _ (IngredientSelectionScreen _)) e =
+handleEvent s@(CyanideState _ _ (IngredientSelectionScreen _ _ _ _)) e =
     IngredientSelectionScreen.handleEvent s e
-handleEvent s@(CyanideState _ _ (IngredientInputScreen _ _ _ _ _ _ _)) e =
+handleEvent s@(CyanideState _ _ (IngredientInputScreen _ _ _ _ _ _)) e =
     IngredientInputScreen.handleEvent s e
-handleEvent s@(CyanideState _ _ (IngredientDetailScreen _ _ _ _ _ _ _)) e =
+handleEvent s@(CyanideState _ _ (IngredientDetailScreen _ _ _ _ _ _)) e =
     IngredientDetailScreen.handleEvent s e
 handleEvent s@(CyanideState _ _ (IngredientDeletionScreen _ _ _ _)) e =
     IngredientDeletionScreen.handleEvent s e
 handleEvent s@(CyanideState _ _ (PurchaseDeletionScreen _ _ _)) e =
     PurchaseDeletionScreen.handleEvent s e
-handleEvent s@(CyanideState _ _ (PurchaseCreationScreen _ _ _ _ _)) e =
+handleEvent s@(CyanideState _ _ (PurchaseCreationScreen _ _ _ _ _ _ _)) e =
     PurchaseCreationScreen.handleEvent s e
 handleEvent s@(CyanideState _ _ (IngredientClassSelectionScreen _)) e =
     IngredientClassSelectionScreen.handleEvent s e
@@ -139,17 +139,17 @@ drawUI s@(CyanideState _ _ (RecipeInputIngredientScreen _ _ _ _ _ _ _ _)) =
     RecipeInputIngredientScreen.drawUI s
 drawUI s@(CyanideState _ _ (RecipeDeletionScreen _ _)) =
     RecipeDeletionScreen.drawUI s
-drawUI s@(CyanideState _ _ (IngredientSelectionScreen _)) =
+drawUI s@(CyanideState _ _ (IngredientSelectionScreen _ _ _ _)) =
     IngredientSelectionScreen.drawUI s
-drawUI s@(CyanideState _ _ (IngredientInputScreen _ _ _ _ _ _ _)) =
+drawUI s@(CyanideState _ _ (IngredientInputScreen _ _ _ _ _ _)) =
     IngredientInputScreen.drawUI s
-drawUI s@(CyanideState _ _ (IngredientDetailScreen _ _ _ _ _ _ _)) =
+drawUI s@(CyanideState _ _ (IngredientDetailScreen _ _ _ _ _ _)) =
     IngredientDetailScreen.drawUI s
 drawUI s@(CyanideState _ _ (IngredientDeletionScreen _ _ _ _)) =
     IngredientDeletionScreen.drawUI s
 drawUI s@(CyanideState _ _ (PurchaseDeletionScreen _ _ _)) =
     PurchaseDeletionScreen.drawUI s
-drawUI s@(CyanideState _ _ (PurchaseCreationScreen _ _ _ _ _)) =
+drawUI s@(CyanideState _ _ (PurchaseCreationScreen _ _ _ _ _ _ _)) =
     PurchaseCreationScreen.drawUI s
 drawUI s@(CyanideState _ _ (IngredientClassSelectionScreen _)) =
     IngredientClassSelectionScreen.drawUI s

@@ -35,11 +35,13 @@ data CyanideScreen
         }
     | IngredientSelectionScreen
         { ingredientSelectionList :: BL.List Name Types.Ingredient
+        , ingredientListOrig      :: [Types.Ingredient]
+        , ingredientListSearch    :: BE.Editor T.Text Name
+        , ingredientListFocusRing :: BF.FocusRing Name
         }
     | IngredientInputScreen
         { ingredientInputName           :: BE.Editor T.Text Name
         , ingredientInputClass          :: BL.List Name (Maybe Types.IngredientClass)
-        , ingredientInputUnit           :: BL.List Name T.Text
         , ingredientInputFocusRing      :: BF.FocusRing Name
         , ingredientInputNotForRecipes  :: Bool
         , ingredientInputBeingModified  :: Maybe Types.Ingredient
@@ -47,7 +49,6 @@ data CyanideScreen
         }
     | IngredientDetailScreen
         { ingredient                     :: Types.Ingredient
-        , ingredientClass                :: Maybe Types.IngredientClass
         , ingredientPurchases            :: BL.List Name Types.Purchase
         , ingredientUsedIn               :: BL.List Name Types.Recipe
         , ingredientRecipe               :: Maybe Types.Recipe
@@ -69,6 +70,8 @@ data CyanideScreen
         { purchaseCreationIngredient     :: Types.Ingredient
         , purchaseCreationEditLocation   :: BE.Editor T.Text Name
         , purchaseCreationEditCost       :: BE.Editor T.Text Name
+        , purchaseCreationEditAmount     :: BE.Editor T.Text Name
+        , purchaseCreationEditUnit       :: BE.Editor T.Text Name
         , purchaseCreationEditFocusRing  :: BF.FocusRing Name
         , purchaseCreationPreviousScreen :: Maybe (Types.Ingredient,Types.Purchase) -> CyanideScreen
         }

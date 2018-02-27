@@ -93,7 +93,7 @@ handleEvent s@(CyanideState conn conf scr@(RecipeInputScreen nameEd garnishEd gl
             ics <- liftIO $ IngredientClasses.getIngredientClasses conn
             is <- liftIO $ Ingredients.getIngredients conn
             let ingrListOrig = map (\(Types.IngredientClass i n) -> IngredientClassListItem i n) ics
-                            ++ map (\(Types.Ingredient i n _ _ _ _) -> IngredientListItem i n) is
+                            ++ map (\(Types.Ingredient i n _ _ _) -> IngredientListItem i n) is
 
             -- Construct the UI elements
             let amountEditor = BE.editor RecipeInputIngredient.amountName (Just 1) ""

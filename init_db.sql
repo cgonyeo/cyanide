@@ -18,11 +18,10 @@ CREATE TABLE "ingredients" (
     id            SERIAL        NOT NULL,
     class         INTEGER,
     name          VARCHAR(1024) NOT NULL,
-    amount        INTEGER       NOT NULL,
-    unit          VARCHAR(1024) NOT NULL,
+    available     BOOLEAN       NOT NULL,
     notForRecipes BOOLEAN       NOT NULL,
     PRIMARY KEY (id),
-    FOREIGN KEY (class) REFERENCES "ingredient_classes" (id) ON DELETE CASCADE
+    FOREIGN KEY (class) REFERENCES "ingredient_classes" (id) ON DELETE SET NULL
 );
 
 CREATE TABLE "purchases" (
@@ -30,6 +29,8 @@ CREATE TABLE "purchases" (
     date       DATE          NOT NULL,
     location   VARCHAR(1024) NOT NULL,
     price      INTEGER       NOT NULL,
+    volume     INTEGER       NOT NULL,
+    unit       VARCHAR(1024) NOT NULL,
     FOREIGN KEY (ingredient) REFERENCES "ingredients" (id) ON DELETE CASCADE
 );
 

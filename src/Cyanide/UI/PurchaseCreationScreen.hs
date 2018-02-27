@@ -34,8 +34,14 @@ locationEditorName = "PurchaseCreationLocation"
 costEditorName :: Name
 costEditorName = "PurchaseCreationCost"
 
+amountEditorName :: Name
+amountEditorName = "PurchaseCreationAmount"
+
+unitEditorName :: Name
+unitEditorName = "PurchaseCreationUnit"
+
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn _ scr@(PurchaseCreationScreen ing le ce fe prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(PurchaseCreationScreen ing le ce ae ue fe prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey Vty.KEsc [] ->
             B.continue $ s { stateScreen = prev Nothing }
@@ -45,27 +51,24 @@ handleEvent s@(CyanideState conn _ scr@(PurchaseCreationScreen ing le ce fe prev
             in B.continue $ s { stateScreen = scr { purchaseCreationEditFocusRing = newFocus } }
 
         Vty.EvKey Vty.KEnter [] ->
-            let locations = BE.getEditContents le
-                costs = BE.getEditContents ce
-            in if length locations /= 1 || length costs /= 1
-                    then B.continue s
-                    else case readMaybe (T.unpack $ costs !! 0) of
-                            Nothing -> B.continue s
-                            Just p ->
-                                if p < 0 || p > 999999
-                                    then B.continue s
-                                    else do
-                                        -- update the amount count for the ingredient
-                                        let newAmount = Types.amount ing + 1
-                                        liftIO $ Ingredients.updateIngredientAmount conn (ing,newAmount)
-                                        let newIngredient = ing { Types.amount = newAmount }
+            case map getEditorLine [le,ce,ae,ue] of
+                [Just l,Just c,Just a, Just u] ->
+                        case (readMaybe (T.unpack $ c),readMaybe (T.unpack a)) of
+                                (Just cn,Just an) ->
+                                    if cn < 0 || an < 0 || cn > 999999 || an > 999999
+                                        then B.continue s
+                                        else do
+                                            -- mark the ingredient as available
+                                            liftIO $ Ingredients.updateIngredientAvailability conn (ing,True)
+                                            let newIngredient = ing { Types.available = True }
 
-                                        -- create the purchase
-                                        now <- liftIO getCurrentTime
-                                        let today = utctDay now
-                                            location = locations !! 0
-                                        liftIO $ Purchases.newPurchase conn (ing,today,location,p)
-                                        B.continue $ s { stateScreen = prev (Just (newIngredient,Types.Purchase today location p)) }
+                                            -- create the purchase
+                                            now <- liftIO getCurrentTime
+                                            let today = utctDay now
+                                            liftIO $ Purchases.newPurchase conn (ing,today,l,cn,an,u)
+                                            B.continue $ s { stateScreen = prev (Just (newIngredient,Types.Purchase today l cn an u)) }
+                                _ -> B.continue s
+                _ -> B.continue s
 
         ev -> if BF.focusGetCurrent (fe) == Just locationEditorName then do
                     newEdit <- BE.handleEditorEvent e le
@@ -73,11 +76,17 @@ handleEvent s@(CyanideState conn _ scr@(PurchaseCreationScreen ing le ce fe prev
               else if BF.focusGetCurrent (fe) == Just costEditorName then do
                     newEdit <- BE.handleEditorEvent e ce
                     B.continue $ s { stateScreen = scr { purchaseCreationEditCost = newEdit } }
+              else if BF.focusGetCurrent (fe) == Just amountEditorName then do
+                    newEdit <- BE.handleEditorEvent e ae
+                    B.continue $ s { stateScreen = scr { purchaseCreationEditAmount = newEdit } }
+              else if BF.focusGetCurrent (fe) == Just unitEditorName then do
+                    newEdit <- BE.handleEditorEvent e ue
+                    B.continue $ s { stateScreen = scr { purchaseCreationEditUnit = newEdit } }
               else B.continue s
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn _ (PurchaseCreationScreen ing le ce fe _)) =
+drawUI (CyanideState conn _ (PurchaseCreationScreen ing le ce ae ue fe _)) =
     [ BC.center
         $ B.hLimit 80
         $ B.vLimit 25
@@ -89,6 +98,12 @@ drawUI (CyanideState conn _ (PurchaseCreationScreen ing le ce fe _)) =
             , B.txt " "
             , BC.hCenter $ B.txt "Cost (in cents):"
             , BC.hCenter $ BB.border $ B.hLimit 9 $ BF.withFocusRing fe (BE.renderEditor drawEdit) ce
+            , B.txt " "
+            , BC.hCenter $ B.txt "Amount:"
+            , BC.hCenter $ BB.border $ B.hLimit 9 $ BF.withFocusRing fe (BE.renderEditor drawEdit) ae
+            , B.txt " "
+            , BC.hCenter $ B.txt "Amount unit:"
+            , BC.hCenter $ BB.border $ B.hLimit 9 $ BF.withFocusRing fe (BE.renderEditor drawEdit) ue
             , B.txt " "
             , renderInstructions [ ("Tab","Change focus")
                                  , ("Enter","Record purchase")

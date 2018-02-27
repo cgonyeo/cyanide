@@ -39,7 +39,7 @@ handleEvent s@(CyanideState conn _ (PurchaseDeletionScreen p i prev)) (B.VtyEven
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn _ (PurchaseDeletionScreen (Types.Purchase t l p) i _)) = [ui]
+drawUI (CyanideState conn _ (PurchaseDeletionScreen (Types.Purchase t l p a u) i _)) = [ui]
     where ui = BC.center
                $ B.hLimit 80
                $ B.vLimit 25 $ B.vBox
@@ -52,7 +52,8 @@ drawUI (CyanideState conn _ (PurchaseDeletionScreen (Types.Purchase t l p) i _))
                                      [ addRow 8 "Name" [B.txt $ Types.ingredientName i]
                                      , addRow 8 "Date" [B.txt $ T.pack $ show t]
                                      , addRow 8 "Location" [B.txt l]
-                                     , addRow 8 "Amount" [B.txt $ formatMoney p]
+                                     , addRow 8 "Price" [B.txt $ formatMoney p]
+                                     , addRow 8 "Amount" [B.txt $ (T.pack (show a)) `T.append` u]
                                      ]
                             , renderInstructions [ ("y","Yes")
                                                  , ("n","No")

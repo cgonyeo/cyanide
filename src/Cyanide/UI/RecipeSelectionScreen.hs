@@ -89,13 +89,25 @@ handleEvent s@(CyanideState conn _ scr@(RecipeSelectionScreen l orig toICs toGs 
           where goBack Nothing = return scr
                 goBack (Just _) = newRecipeSelectionScreen conn
 
+        Vty.EvKey (Vty.KChar '/') [] ->
+            if BF.focusGetCurrent (f) == Just recipesName
+                then let newFocus = BF.focusNext f
+                     in B.continue $ s { stateScreen = scr { recipeListFocusRing = newFocus } }
+                else B.continue s
+
+
         Vty.EvKey (Vty.KEnter) [] ->
-            case (BL.listSelectedElement l) of
-                Nothing -> B.continue s
-                Just (j,r) -> do
-                    glass <- liftIO $ Recipes.getGlassForRecipe conn r
-                    ingrs <- liftIO $ Recipes.getIngredientsForRecipe conn r
-                    B.continue $ s { stateScreen = RecipeDetailScreen r glass ingrs (goBack j) }
+            if BF.focusGetCurrent (f) == Just recipesName then
+                case (BL.listSelectedElement l) of
+                    Nothing -> B.continue s
+                    Just (j,r) -> do
+                        glass <- liftIO $ Recipes.getGlassForRecipe conn r
+                        ingrs <- liftIO $ Recipes.getIngredientsForRecipe conn r
+                        B.continue $ s { stateScreen = RecipeDetailScreen r glass ingrs (goBack j) }
+            else if BF.focusGetCurrent (f) == Just searchName then
+                let newFocus = BF.focusNext f
+                in B.continue $ s { stateScreen = scr { recipeListFocusRing = newFocus } }
+            else B.continue s
           where goBack j Nothing = let newList = BL.listRemove j l
                                    in scr { recipeList = newList }
                 goBack _ (Just (r,_,_)) = let newList = BL.listModify (\_ -> r) l

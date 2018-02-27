@@ -18,6 +18,7 @@ import Cyanide.UI.State
 import Cyanide.UI.Util
 import qualified Cyanide.UI.RecipeSelectionScreen as RecipeSelection
 import qualified Cyanide.UI.RecipeSelectionFilterScreen as RecipeSelectionFilter
+import qualified Cyanide.UI.IngredientSelectionScreen as IngredientSelection
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Recipes as Recipes
 import qualified Cyanide.Data.Glasses as Glasses
@@ -39,9 +40,7 @@ getIngredientClassSelectionScreen conn = do
     return $ IngredientClassSelectionScreen $ BL.list "IngredientClassSelectionScreen" (V.fromList ingredientClasses) 1
 
 getIngredientSelectionScreen :: Postgres.DBConn -> IO CyanideScreen
-getIngredientSelectionScreen conn = do
-    ingredients <- Ingredients.getIngredients conn
-    return $ IngredientSelectionScreen $ BL.list "IngredientSelectionScreen" (V.fromList ingredients) 1
+getIngredientSelectionScreen conn = IngredientSelection.newIngredientSelectionScreen conn
 
 attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
