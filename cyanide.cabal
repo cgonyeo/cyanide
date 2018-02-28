@@ -3,7 +3,7 @@ version:             0.1.0.0
 -- synopsis:
 -- description:
 homepage:            https://github.com/dgonyeo/cyanide#readme
-license:             GPLv3
+license:             GPL-3
 license-file:        LICENSE
 author:              Derek Gonyeo
 maintainer:          derek@gonyeo.com

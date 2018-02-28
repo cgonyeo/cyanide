@@ -17,6 +17,10 @@
 #  location: "./custom-snapshot.yaml"
 resolver: lts-10.4
 
+nix:
+  enable: true
+  packages: [postgresql]
+
 # User packages to be built.
 # Various formats can be used as shown in the example below.
 #
