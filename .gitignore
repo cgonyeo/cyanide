@@ -3,3 +3,5 @@
 *.ho
 *.o
 *.swp
+docker-rootfs
+out*

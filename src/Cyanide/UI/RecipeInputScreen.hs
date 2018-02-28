@@ -15,7 +15,7 @@ import qualified Brick.Focus as BF
 import Data.Monoid
 import Data.Maybe
 import Control.Monad.IO.Class
-import System.Environment
+import System.Posix.Env
 import System.Process
 import System.Directory
 import qualified Data.ByteString.Lazy.Char8 as BSL
@@ -128,10 +128,11 @@ handleEvent s@(CyanideState conn conf scr@(RecipeInputScreen nameEd garnishEd gl
             B.continue $ s { stateScreen = (RecipeInputIngredientScreen name amountEditor unitEditor filterEditor ingrListOrig ingList f getBack) }
 
         Vty.EvKey (Vty.KChar 'i') [Vty.MMeta] -> do
-            editorEnv <- liftIO $ getEnv "EDITOR"
-            let editor = case Config.editor (Config.editorSection conf) of
-                            "" -> editorEnv
-                            e -> T.unpack e
+            mEditorEnv <- liftIO $ getEnv "EDITOR"
+            let editor = case (Config.editor (Config.editorSection conf),mEditorEnv) of
+                            ("",Just e) -> e
+                            ("",Nothing) -> "vim"
+                            (e,_) -> T.unpack e
                 tmpDir = "/tmp"
                 hashOfInstructions = showDigest $ sha512 (BSL.pack $ T.unpack instr)
                 fileName = tmpDir ++ "/cyanide-" ++ take 8 hashOfInstructions ++ ".md"
