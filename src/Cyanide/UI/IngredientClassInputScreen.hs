@@ -45,6 +45,7 @@ handleEvent s@(CyanideState conn _ (IngredientClassInputScreen ed mic l)) (B.Vty
                             newIngredientClass <- liftIO $ IngredientClasses.newIngredientClass conn newIngredientClassName
                             let newList = BL.listInsert (length l) newIngredientClass l
                             B.continue $ s { stateScreen = (IngredientClassSelectionScreen newList) }
+                        _ -> B.continue s
 
         ev -> do
             newEdit <- BE.handleEditorEvent e ed

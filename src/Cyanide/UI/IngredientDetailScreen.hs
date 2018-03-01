@@ -15,6 +15,7 @@ import qualified Brick.Focus as BF
 import Data.Monoid
 import Control.Monad.IO.Class
 import Data.Maybe
+import qualified Data.List as L
 
 import Cyanide.UI.State
 import qualified Cyanide.UI.RecipeInputScreen as RecipeInput
@@ -22,6 +23,7 @@ import qualified Cyanide.UI.IngredientInputScreen as IngredientInput
 import qualified Cyanide.Data.IngredientClasses as IngredientClasses
 import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Ingredients as Ingredients
+import qualified Cyanide.Data.Purchases as Purchases
 import qualified Cyanide.Data.Recipes as Recipes
 import qualified Cyanide.Data.Postgres as Postgres
 import qualified Cyanide.Data.Units as Units
@@ -36,6 +38,34 @@ purchasesListName = "IngredientDetailPurchases"
 
 recipesListName :: Name
 recipesListName = "IngredientDetailRecipes"
+
+newIngredientDetailScreen :: Postgres.DBConn -> Types.Ingredient -> (Maybe Types.Ingredient -> CyanideScreen) -> IO CyanideScreen
+newIngredientDetailScreen conn ingr prev = do
+    purchases <- Purchases.getPurchasesForIngredient conn ingr
+    recipes <- getRecipesUsedIn conn ingr
+    recipeForIngr <- Recipes.getRecipeForIngredient conn ingr
+    let f = BF.focusRing $ [purchasesListName]
+                            ++ if Types.notForRecipes ingr
+                                    then []
+                                    else [recipesListName]
+        purchasesList = BL.list purchasesListName (V.fromList purchases) 1
+        usedInList = BL.list recipesListName (V.fromList recipes) 1
+    return $ IngredientDetailScreen ingr purchasesList usedInList recipeForIngr f prev
+
+getRecipesUsedIn :: Postgres.DBConn -> Types.Ingredient -> IO [Types.Recipe]
+getRecipesUsedIn conn ingr = do
+    recipes1 <- liftIO $ Recipes.getRecipesUsingIngredient conn ingr
+    recipes2 <- case Types.ingredientClass ingr of
+                        Just ic -> do
+                            rlst <- liftIO $ Recipes.getRecipesUsingIngredientClass conn ic
+                            return rlst
+                        Nothing -> return []
+    return $ L.sortBy (\r1 r2 -> compare (getRecipeName r1) (getRecipeName r2))
+                $ recipes1 ++ recipes2
+  where getRecipeName :: Types.Recipe -> T.Text
+        getRecipeName r = case Types.recipeName r of
+                            Left t -> t
+                            Right i -> "recipe for " `T.append` Types.ingredientName i
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
 handleEvent s@(CyanideState conn _ scr@(IngredientDetailScreen i ps rs mr f prev)) (B.VtyEvent e) =
@@ -76,14 +106,20 @@ handleEvent s@(CyanideState conn _ scr@(IngredientDetailScreen i ps rs mr f prev
                       in case matches of
                           [(i,_)] -> i
                           _ -> 0
-                goBack Nothing = scr
-                goBack (Just (ingr,_)) = scr { ingredient = ingr }
+                goBack Nothing = return $ scr
+                goBack (Just (ingr,_)) = do
+                    recipes <- liftIO $ getRecipesUsedIn conn ingr
+                    let newIndex = BL.listSelectedElement rs >>= (Just . fst)
+                        newList = BL.listReplace (V.fromList recipes) newIndex rs
+                    return $ scr { ingredient = ingr
+                                 , ingredientUsedIn = newList
+                                 }
 
         Vty.EvKey (Vty.KChar 'r') [] ->
             case mr of
                 Just r -> do
                     ingrs <- liftIO $ Recipes.getIngredientsForRecipe conn r
-                    B.continue $ s { stateScreen = RecipeDetailScreen r Nothing ingrs goBack }
+                    B.continue $ s { stateScreen = RecipeDetailScreen r Nothing ingrs (return . goBack) }
                 Nothing -> do
                     newScr <- liftIO $ RecipeInput.newRecipeInputScreen conn Nothing [] (Just i) Nothing (return . goBack)
                     B.continue $ s { stateScreen = newScr }
@@ -98,10 +134,11 @@ handleEvent s@(CyanideState conn _ scr@(IngredientDetailScreen i ps rs mr f prev
                     B.continue $ s { stateScreen = RecipeDetailScreen r glass ingrs (goBack j) }
                 (_,_) -> B.continue s
           where goBack j Nothing = let newList = BL.listRemove j rs
-                                   in scr { ingredientUsedIn = newList }
-                goBack _ (Just (r,_,_)) = let newList = BL.listModify (\_ -> r) rs
-                                          in scr { ingredientUsedIn = newList }
-
+                                   in return $ scr { ingredientUsedIn = newList }
+                goBack j (Just _) = do
+                    recipes <- liftIO $ getRecipesUsedIn conn i
+                    let newList = BL.listReplace (V.fromList recipes) (Just j) rs
+                    return $ scr { ingredientUsedIn = newList }
         Vty.EvKey (Vty.KChar 'd') [] ->
             if BF.focusGetCurrent f == Just purchasesListName
                 then case BL.listSelectedElement ps of
@@ -156,8 +193,8 @@ drawUI (CyanideState conn _ (IngredientDetailScreen ing pl rl mr f prev)) = [ui]
                               ]
                      , B.padLeft (B.Pad 2) $ B.vBox
                         [ if isJust mr
-                             then B.txt "    r - View recipe"
-                             else B.txt "    r - Create recipe"
+                             then B.txt "r - View recipe"
+                             else B.txt "r - Create recipe"
                         , B.txt "a - Toggle availability"
                         , B.txt "e - Edit ingredient"
                         ]

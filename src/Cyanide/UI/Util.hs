@@ -97,3 +97,4 @@ readFraction str
         collapseWhitespace (h1:h2:t)
                 | h1 == ' ' &&  h2 == ' ' = h2 : collapseWhitespace t
                 | otherwise = h1 : collapseWhitespace (h2:t)
+

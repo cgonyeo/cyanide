@@ -21,6 +21,7 @@ import qualified Cyanide.UI.RecipeInputScreen as RecipeInputScreen
 import qualified Cyanide.UI.RecipeInputIngredientScreen as RecipeInputIngredientScreen
 import qualified Cyanide.UI.RecipeDeletionScreen as RecipeDeletionScreen
 import qualified Cyanide.UI.MainSelectionScreen as MainSelectionScreen
+import qualified Cyanide.UI.ErrorScreen as ErrorScreen
 import qualified Cyanide.UI.GlassSelectionScreen as GlassSelectionScreen
 import qualified Cyanide.UI.GlassDeletionScreen as GlassDeletionScreen
 import qualified Cyanide.UI.GlassInputScreen as GlassInputScreen
@@ -54,6 +55,7 @@ attrMap = B.attrMap Vty.defAttr
       , (BL.listSelectedFocusedAttr, Vty.black `B.on` Vty.white)
       ]
    ++ MainSelectionScreen.attrMap
+   ++ ErrorScreen.attrMap
    ++ RecipeDetailScreen.attrMap
    ++ RecipeInputScreen.attrMap
    ++ RecipeInputIngredientScreen.attrMap
@@ -79,6 +81,8 @@ attrMap = B.attrMap Vty.defAttr
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
 handleEvent s@(CyanideState _ _ MainSelectionScreen) e =
     MainSelectionScreen.handleEvent s e
+handleEvent s@(CyanideState _ _ (ErrorScreen _ _)) e =
+    ErrorScreen.handleEvent s e
 handleEvent s@(CyanideState _ _ (GlassSelectionScreen _)) e =
     GlassSelectionScreen.handleEvent s e
 handleEvent s@(CyanideState _ _ (GlassDeletionScreen _)) e =
@@ -121,6 +125,8 @@ handleEvent s@(CyanideState _ _ (IngredientClassInputScreen _ _ _)) e =
 drawUI :: CyanideState -> [B.Widget Name]
 drawUI s@(CyanideState _ _ MainSelectionScreen) =
     MainSelectionScreen.drawUI s
+drawUI s@(CyanideState _ _ (ErrorScreen _ _)) =
+    ErrorScreen.drawUI s
 drawUI s@(CyanideState _ _ (GlassSelectionScreen _)) =
     GlassSelectionScreen.drawUI s
 drawUI s@(CyanideState _ _ (GlassDeletionScreen _)) =

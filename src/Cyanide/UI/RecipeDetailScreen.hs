@@ -40,9 +40,11 @@ handleEvent s@(CyanideState conn _ scr@(RecipeDetailScreen r g is prev)) (B.VtyE
         Vty.EvKey (Vty.KChar 'd') [Vty.MMeta] -> do
             B.continue $ s { stateScreen = RecipeDeletionScreen r goBack }
           where goBack True = prev Nothing
-                goBack False = scr
+                goBack False = return scr
 
-        Vty.EvKey (Vty.KEsc) [] -> B.continue $ s { stateScreen = (prev $ Just (r,g,is)) }
+        Vty.EvKey (Vty.KEsc) [] -> do
+            newScr <- liftIO $ prev $ Just (r,g,is)
+            B.continue $ s { stateScreen = newScr }
 
         ev -> B.continue s
 handleEvent s _ = B.continue s

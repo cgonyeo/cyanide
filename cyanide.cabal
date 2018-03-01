@@ -44,6 +44,7 @@ executable cyanide
                      , Cyanide.UI.PurchaseCreationScreen
                      , Cyanide.UI.Util
                      , Cyanide.UI.MainSelectionScreen
+                     , Cyanide.UI.ErrorScreen
                      , Cyanide.UI.IngredientClassSelectionScreen
                      , Cyanide.UI.IngredientClassDeletionScreen
                      , Cyanide.UI.IngredientClassInputScreen

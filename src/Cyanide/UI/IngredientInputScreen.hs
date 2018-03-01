@@ -34,8 +34,9 @@ attrMap = []
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
 handleEvent s@(CyanideState conn _ scr@(IngredientInputScreen ed cl f si mi prev)) (B.VtyEvent e) =
     case e of
-        Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ s { stateScreen = prev Nothing }
+        Vty.EvKey (Vty.KEsc) [] -> do
+            newScr <- liftIO $ prev Nothing
+            B.continue $ s { stateScreen = newScr }
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
@@ -53,13 +54,15 @@ handleEvent s@(CyanideState conn _ scr@(IngredientInputScreen ed cl f si mi prev
                     let Just (_,iclass) = BL.listSelectedElement cl
 
                     newIngredient <- liftIO $ Ingredients.updateIngredient conn (Types.ingredientId oldIng) (n,iclass,si)
-                    B.continue $ s { stateScreen = prev (Just (newIngredient,iclass)) }
+                    newScr <- liftIO $ prev (Just (newIngredient,iclass))
+                    B.continue $ s { stateScreen = newScr }
                 -- We're creating a new ingredient
                 (Nothing,Just n) -> do
                     let Just (_,iclass) = BL.listSelectedElement cl
 
                     newIngredient <- liftIO $ Ingredients.newIngredient conn (n,iclass,si)
-                    B.continue $ s { stateScreen = prev (Just (newIngredient,iclass)) }
+                    newScr <- liftIO $ prev (Just (newIngredient,iclass))
+                    B.continue $ s { stateScreen = newScr }
 
         ev -> if BF.focusGetCurrent (f) == Just editorName then do
                     newEdit <- BE.handleEditorEvent ev ed

@@ -56,7 +56,7 @@ handleEvent s@(CyanideState conn _ scr@(PurchaseCreationScreen ing le ce ae ue f
                         case (readMaybe (T.unpack $ c),readMaybe (T.unpack a)) of
                                 (Just cn,Just an) ->
                                     if cn < 0 || an < 0 || cn > 999999 || an > 999999
-                                        then B.continue s
+                                        then B.continue $ s { stateScreen = ErrorScreen "The cost and amount must be between 0 and 999999." scr }
                                         else do
                                             -- mark the ingredient as available
                                             liftIO $ Ingredients.updateIngredientAvailability conn (ing,True)
@@ -67,7 +67,8 @@ handleEvent s@(CyanideState conn _ scr@(PurchaseCreationScreen ing le ce ae ue f
                                             let today = utctDay now
                                             liftIO $ Purchases.newPurchase conn (ing,today,l,cn,an,u)
                                             B.continue $ s { stateScreen = prev (Just (newIngredient,Types.Purchase today l cn an u)) }
-                                _ -> B.continue s
+                                (Nothing,_) -> B.continue $ s { stateScreen = ErrorScreen "Couldn't parse the cost. Please enter the cost in cents, so $12.95 would become 1295." scr }
+                                (_,Nothing) -> B.continue $ s { stateScreen = ErrorScreen "Couldn't parse the amount. Please enter an integer." scr }
                 _ -> B.continue s
 
         ev -> if BF.focusGetCurrent (fe) == Just locationEditorName then do

@@ -53,12 +53,12 @@ handleEvent s@(CyanideState conn _ scr@(RecipeInputIngredientScreen rname amount
 
         Vty.EvKey Vty.KEnter [] -> do
             case parseAmount $ fromJust $ getEditorLine amountEd of
-                Nothing -> B.continue s
+                Nothing -> B.continue $ s { stateScreen = ErrorScreen "Couldn't parse amount, here's some valid examples: \"1\", \"1/2\", \"2 1/4\"." scr }
                 Just (amtNum,amtDen) -> do
                     let unitInput = unitAliases $ fromJust $ getEditorLine unitEd
 
                     case BL.listSelectedElement ingrList of
-                        Nothing -> B.continue s
+                        Nothing -> B.continue $ s { stateScreen = ErrorScreen "Ingredient filter doesn't match anything." scr }
                         Just (_,i) -> do
                             ingrItem <- liftIO $ makeIngrItem conn amtNum amtDen unitInput i
                             let newScr = goBack (Just ingrItem)

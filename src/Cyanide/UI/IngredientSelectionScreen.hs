@@ -64,25 +64,8 @@ handleEvent s@(CyanideState conn _ scr@(IngredientSelectionScreen l orig se f)) 
         Vty.EvKey Vty.KEnter [] ->
             if BF.focusGetCurrent (f) == Just ingredientsName then do
                 let Just (j,ingr) = BL.listSelectedElement l
-                purchases <- liftIO $ Purchases.getPurchasesForIngredient conn ingr
-                recipes1 <- liftIO $ Recipes.getRecipesUsingIngredient conn ingr
-                recipes2 <- case Types.ingredientClass ingr of
-                                    Just ic -> do
-                                        rlst <- liftIO $ Recipes.getRecipesUsingIngredientClass conn ic
-                                        return rlst
-                                    Nothing -> return []
-                recipeForIngr <- liftIO $ Recipes.getRecipeForIngredient conn ingr
-                let f = BF.focusRing $ [IngredientDetail.purchasesListName]
-                                        ++ if Types.notForRecipes ingr
-                                                then []
-                                                else [IngredientDetail.recipesListName]
-                B.continue $ s { stateScreen = IngredientDetailScreen
-                                                ingr
-                                                (BL.list IngredientDetail.purchasesListName (V.fromList purchases) 1)
-                                                (BL.list IngredientDetail.recipesListName (V.fromList (recipes1++recipes2)) 1)
-                                                recipeForIngr
-                                                f
-                                                (goBack j) }
+                newScr <- liftIO $ IngredientDetail.newIngredientDetailScreen conn ingr (goBack j)
+                B.continue $ s { stateScreen = newScr }
             else if BF.focusGetCurrent (f) == Just searchName then
                 let newFocus = BF.focusNext f
                 in B.continue $ s { stateScreen = scr { ingredientListFocusRing = newFocus } }
@@ -121,7 +104,7 @@ handleEvent s@(CyanideState conn _ scr@(IngredientSelectionScreen l orig se f)) 
                 f = BF.focusRing [ IngredientInput.editorName
                                  , IngredientInput.classesName
                                  ]
-            B.continue $ s { stateScreen = (IngredientInputScreen ed iclist f False Nothing goBack) }
+            B.continue $ s { stateScreen = IngredientInputScreen ed iclist f False Nothing (return . goBack) }
           where goBack Nothing = scr
                 goBack (Just (i,_)) =
                     let newList = BL.listInsert (length l) i l

@@ -26,15 +26,18 @@ attrMap = []
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
 handleEvent s@(CyanideState conn _ (RecipeDeletionScreen r prev)) (B.VtyEvent e) =
     case e of
-        Vty.EvKey (Vty.KEsc) [] ->
-            B.continue $ s { stateScreen = prev False }
+        Vty.EvKey (Vty.KEsc) [] -> do
+            newScr <- liftIO $ prev False
+            B.continue $ s { stateScreen = newScr }
 
-        Vty.EvKey (Vty.KChar 'n') [] ->
-            B.continue $ s { stateScreen = prev False }
+        Vty.EvKey (Vty.KChar 'n') [] -> do
+            newScr <- liftIO $ prev False
+            B.continue $ s { stateScreen = newScr }
 
         Vty.EvKey (Vty.KChar 'y') [] -> do
+            newScr <- liftIO $ prev True
             liftIO $ Recipes.deleteRecipe conn r
-            B.continue $ s { stateScreen = prev True }
+            B.continue $ s { stateScreen = newScr }
 
         _ -> B.continue s
 handleEvent s _ = B.continue s

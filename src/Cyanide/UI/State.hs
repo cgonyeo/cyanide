@@ -22,6 +22,10 @@ data CyanideState = CyanideState
 
 data CyanideScreen
     = MainSelectionScreen
+    | ErrorScreen
+        { errorMessage :: T.Text
+        , errorPreviousScreen :: CyanideScreen
+        }
     | GlassSelectionScreen
         { glassUIList :: BL.List Name Types.Glass
         }
@@ -45,7 +49,7 @@ data CyanideScreen
         , ingredientInputFocusRing      :: BF.FocusRing Name
         , ingredientInputNotForRecipes  :: Bool
         , ingredientInputBeingModified  :: Maybe Types.Ingredient
-        , ingredientInputPreviousScreen :: Maybe (Types.Ingredient,Maybe Types.IngredientClass) -> CyanideScreen
+        , ingredientInputPreviousScreen :: Maybe (Types.Ingredient,Maybe Types.IngredientClass) -> IO CyanideScreen
         }
     | IngredientDetailScreen
         { ingredient                     :: Types.Ingredient
@@ -94,11 +98,11 @@ data CyanideScreen
         { recipeInstructions   :: Types.Recipe
         , recipeGlass          :: Maybe Types.Glass
         , recipeIngredientList :: [Types.IngredientListItem]
-        , recipePreviousScreen :: Maybe (Types.Recipe,Maybe Types.Glass,[Types.IngredientListItem]) -> CyanideScreen
+        , recipePreviousScreen :: Maybe (Types.Recipe,Maybe Types.Glass,[Types.IngredientListItem]) -> IO CyanideScreen
         }
     | RecipeDeletionScreen
         { recipeDeletionRecipe         :: Types.Recipe
-        , recipeDeletionPrevioudScreen :: Bool -> CyanideScreen
+        , recipeDeletionPreviousScreen :: Bool -> IO CyanideScreen
         }
     | RecipeInputScreen
         { recipeInputName           :: BE.Editor T.Text Name

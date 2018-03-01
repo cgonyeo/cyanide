@@ -109,9 +109,30 @@ handleEvent s@(CyanideState conn _ scr@(RecipeSelectionScreen l orig toICs toGs 
                 in B.continue $ s { stateScreen = scr { recipeListFocusRing = newFocus } }
             else B.continue s
           where goBack j Nothing = let newList = BL.listRemove j l
-                                   in scr { recipeList = newList }
+                                       Just (_,rec) = BL.listSelectedElement l
+                                       newOrig = removeRec orig rec
+                                   in return $ scr { recipeList = newList
+                                                   , recipeListOrig = newOrig
+                                                   }
                 goBack _ (Just (r,_,_)) = let newList = BL.listModify (\_ -> r) l
-                                          in scr { recipeList = newList }
+                                              newOrig = replaceRec orig r
+                                          in return $ scr { recipeList = newList
+                                                          , recipeListOrig = newOrig
+                                                          }
+
+                replaceRec :: [Types.Recipe] -> Types.Recipe -> [Types.Recipe]
+                replaceRec [] _ = []
+                replaceRec (rec1:t) rec2 =
+                    if Types.recipeId rec1 == Types.recipeId rec2
+                        then rec2 : t
+                        else rec1 : replaceRec t rec2
+
+                removeRec :: [Types.Recipe] -> Types.Recipe -> [Types.Recipe]
+                removeRec [] _ = []
+                removeRec (rec1:t) rec2 =
+                    if Types.recipeId rec1 == Types.recipeId rec2
+                        then t
+                        else rec1 : replaceRec t rec2
 
         ev -> if BF.focusGetCurrent (f) == Just recipesName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev l

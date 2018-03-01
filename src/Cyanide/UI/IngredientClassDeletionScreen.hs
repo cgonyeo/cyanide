@@ -46,7 +46,7 @@ drawUI (CyanideState conn _ (IngredientClassDeletionScreen l)) = [ui]
           ui = BC.center
                $ B.hLimit 80
                $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txt $ "Are you sure you want to delete the following glass?"
+                            [ BC.hCenter $ B.txt $ "Are you sure you want to delete the following ingredient class?"
                             , BC.hCenter $ B.padAll 1 $ B.txt n
                             , renderInstructions [ ("y","Yes")
                                                  , ("n","No")
