@@ -49,7 +49,7 @@ to mount in a modified config to `/root/.config/cyanide/cyanide.conf`.
 Cyanide can be downloaded from the [releases page on GitHub][releases]:
 
 ```
-curl -o cyanide https://github.com/dgonyeo/cyanide/...
+curl -o cyanide https://github.com/dgonyeo/cyanide/releases/download/v0.1.0/cyanide-linux-glibc
 chmod +x cyanide
 ```
 
