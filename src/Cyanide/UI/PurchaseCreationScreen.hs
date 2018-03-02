@@ -15,8 +15,7 @@ import qualified Brick.Focus as BF
 import Data.Monoid
 import Control.Monad.IO.Class
 import Text.Read
-import Data.Time.Clock
-import Data.Time.Calendar
+import Data.Time.LocalTime
 
 import Cyanide.UI.State
 import qualified Cyanide.Data.Types as Types
@@ -53,22 +52,22 @@ handleEvent s@(CyanideState conn _ scr@(PurchaseCreationScreen ing le ce ae ue f
         Vty.EvKey Vty.KEnter [] ->
             case map getEditorLine [le,ce,ae,ue] of
                 [Just l,Just c,Just a, Just u] ->
-                        case (readMaybe (T.unpack $ c),readMaybe (T.unpack a)) of
-                                (Just cn,Just an) ->
-                                    if cn < 0 || an < 0 || cn > 999999 || an > 999999
-                                        then B.continue $ s { stateScreen = ErrorScreen "The cost and amount must be between 0 and 999999." scr }
-                                        else do
-                                            -- mark the ingredient as available
-                                            liftIO $ Ingredients.updateIngredientAvailability conn (ing,True)
-                                            let newIngredient = ing { Types.available = True }
+                    case (readMaybe (T.unpack $ c),readMaybe (T.unpack a)) of
+                        (Nothing,_) -> B.continue $ s { stateScreen = ErrorScreen "Couldn't parse the cost. Please enter the cost in cents, so $12.95 would become 1295." scr }
+                        (_,Nothing) -> B.continue $ s { stateScreen = ErrorScreen "Couldn't parse the amount. Please enter an integer." scr }
+                        (Just cn,Just an) ->
+                            if cn < 0 || an < 0 || cn > 999999 || an > 999999
+                                then B.continue $ s { stateScreen = ErrorScreen "The cost and amount must be between 0 and 999999." scr }
+                                else do
+                                    -- mark the ingredient as available
+                                    liftIO $ Ingredients.updateIngredientAvailability conn (ing,True)
+                                    let newIngredient = ing { Types.available = True }
 
-                                            -- create the purchase
-                                            now <- liftIO getCurrentTime
-                                            let today = utctDay now
-                                            liftIO $ Purchases.newPurchase conn (ing,today,l,cn,an,u)
-                                            B.continue $ s { stateScreen = prev (Just (newIngredient,Types.Purchase today l cn an u)) }
-                                (Nothing,_) -> B.continue $ s { stateScreen = ErrorScreen "Couldn't parse the cost. Please enter the cost in cents, so $12.95 would become 1295." scr }
-                                (_,Nothing) -> B.continue $ s { stateScreen = ErrorScreen "Couldn't parse the amount. Please enter an integer." scr }
+                                    -- create the purchase
+                                    now <- liftIO getZonedTime
+                                    let today = localDay $ zonedTimeToLocalTime now
+                                    liftIO $ Purchases.newPurchase conn (ing,today,l,cn,an,u)
+                                    B.continue $ s { stateScreen = prev (Just (newIngredient,Types.Purchase today l cn an u)) }
                 _ -> B.continue s
 
         ev -> if BF.focusGetCurrent (fe) == Just locationEditorName then do

@@ -46,18 +46,22 @@ handleEvent s@(CyanideState conn _ scr@(IngredientInputScreen ed cl f si mi prev
             B.continue $ s { stateScreen = scr { ingredientInputNotForRecipes = not si } }
 
         Vty.EvKey (Vty.KEnter) [] -> do
-            mIngredientName <- getAndCheckEditorName (isNothing mi)
-            case (mi,mIngredientName) of
-                (_,Nothing) -> B.continue s
+            ingredients <- liftIO $ Ingredients.getIngredients conn
+            let mName = getEditorLine ed
+                isUnique = 0 == length (filter (\i -> Just (Types.ingredientName i) == mName) ingredients)
+            case (mi,isUnique,mName) of
+                (_,_,Nothing) -> B.continue s
                 -- We're updating an existing ingredient
-                (Just oldIng,Just n) -> do
+                (Just oldIng,_,Just n) -> do
                     let Just (_,iclass) = BL.listSelectedElement cl
 
                     newIngredient <- liftIO $ Ingredients.updateIngredient conn (Types.ingredientId oldIng) (n,iclass,si)
                     newScr <- liftIO $ prev (Just (newIngredient,iclass))
                     B.continue $ s { stateScreen = newScr }
                 -- We're creating a new ingredient
-                (Nothing,Just n) -> do
+                (Nothing,False,_) ->
+                    B.continue $ s { stateScreen = ErrorScreen "An ingredient with the same name already exists." scr }
+                (Nothing,True,Just n) -> do
                     let Just (_,iclass) = BL.listSelectedElement cl
 
                     newIngredient <- liftIO $ Ingredients.newIngredient conn (n,iclass,si)
@@ -72,19 +76,6 @@ handleEvent s@(CyanideState conn _ scr@(IngredientInputScreen ed cl f si mi prev
                     B.continue $ s { stateScreen = scr { ingredientInputClass = newList } }
               else B.continue s
 
-  where getAndCheckEditorName mustBeUnique = do
-            let newIngredientNames = BE.getEditContents ed
-            if length newIngredientNames /= 1
-                then return Nothing
-                else do
-                    ingredients <- liftIO $ Ingredients.getIngredients conn
-                    let newIngredientName = newIngredientNames !! 0
-                    if not mustBeUnique
-                        then return $ Just newIngredientName
-                        else case filter (\i -> Types.ingredientName i == newIngredientName) ingredients of
-                                [] -> return $ Just newIngredientName
-                                _ -> return Nothing
-
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
@@ -98,7 +89,7 @@ drawUI (CyanideState conn _ (IngredientInputScreen e cl f s mi _)) = [ui]
           prompt = case mi of
                     Just i -> "How do you want to edit \"" `T.append` Types.ingredientName i `T.append` "\"?"
                     Nothing -> "What ingredient do you want to create?"
-        
+
           enterAction = case mi of
                     Just _ -> "Modify"
                     Nothing -> "Create"

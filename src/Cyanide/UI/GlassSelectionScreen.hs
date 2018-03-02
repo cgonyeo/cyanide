@@ -24,13 +24,19 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn _ (GlassSelectionScreen l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(GlassSelectionScreen l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
             B.continue $ s { stateScreen = MainSelectionScreen }
 
-        Vty.EvKey (Vty.KChar 'd') [] ->
-            B.continue $ s { stateScreen = (GlassDeletionScreen l) }
+        Vty.EvKey (Vty.KChar 'd') [] -> do
+            case BL.listSelectedElement l of
+                Nothing -> B.continue s
+                Just (_,g) -> do
+                    isInUse <- liftIO $ Glasses.isGlassInUse conn g
+                    if isInUse
+                        then B.continue $ s { stateScreen = (ErrorScreen "That glass is being used in recipes." scr) }
+                        else B.continue $ s { stateScreen = (GlassDeletionScreen l) }
 
         Vty.EvKey (Vty.KChar 'n') [] ->
             B.continue $ s { stateScreen = (GlassInputScreen (BE.editorText "GlassCreationScreen" (Just 1) "") Nothing l) }

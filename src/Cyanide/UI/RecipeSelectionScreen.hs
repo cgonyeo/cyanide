@@ -17,6 +17,8 @@ import Data.Monoid
 import Control.Monad.IO.Class
 import Control.Monad
 import qualified Data.List as L
+import System.Random
+import qualified Data.Foldable as F
 
 import Cyanide.UI.State
 import Cyanide.UI.Util
@@ -81,6 +83,23 @@ handleEvent s@(CyanideState conn _ scr@(RecipeSelectionScreen l orig toICs toGs 
                                  , recipeListFilter = rlf
                                  }
 
+        Vty.EvKey (Vty.KChar 'r') [Vty.MMeta] -> do
+            num <- liftIO $ randomRIO (0, length l - 1)
+            let r = F.toList l !! num
+            glass <- liftIO $ Recipes.getGlassForRecipe conn r
+            ingrs <- liftIO $ Recipes.getIngredientsForRecipe conn r
+            B.continue $ s { stateScreen = RecipeDetailScreen r glass ingrs (goBack num) }
+          where goBack j Nothing = let newList = BL.listRemove j l
+                                       Just (_,rec) = BL.listSelectedElement l
+                                       newOrig = removeRec orig rec
+                                   in return $ scr { recipeList = newList
+                                                   , recipeListOrig = newOrig
+                                                   }
+                goBack j (Just (r,_,_)) = let newList = BL.listInsert j r $ BL.listRemove j l
+                                              newOrig = replaceRec orig r
+                                          in return $ scr { recipeList = newList
+                                                          , recipeListOrig = newOrig
+                                                          }
 
 
         Vty.EvKey (Vty.KChar 'n') [Vty.MMeta] -> do
@@ -119,20 +138,6 @@ handleEvent s@(CyanideState conn _ scr@(RecipeSelectionScreen l orig toICs toGs 
                                           in return $ scr { recipeList = newList
                                                           , recipeListOrig = newOrig
                                                           }
-
-                replaceRec :: [Types.Recipe] -> Types.Recipe -> [Types.Recipe]
-                replaceRec [] _ = []
-                replaceRec (rec1:t) rec2 =
-                    if Types.recipeId rec1 == Types.recipeId rec2
-                        then rec2 : t
-                        else rec1 : replaceRec t rec2
-
-                removeRec :: [Types.Recipe] -> Types.Recipe -> [Types.Recipe]
-                removeRec [] _ = []
-                removeRec (rec1:t) rec2 =
-                    if Types.recipeId rec1 == Types.recipeId rec2
-                        then t
-                        else rec1 : replaceRec t rec2
 
         ev -> if BF.focusGetCurrent (f) == Just recipesName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev l
@@ -186,6 +191,20 @@ handleEvent s@(CyanideState conn _ scr@(RecipeSelectionScreen l orig toICs toGs 
 
         filterFunc filterText (Types.Recipe _ (Left n) _ _) = L.isInfixOf (T.unpack $ T.toLower filterText) (T.unpack $ T.toLower n)
         filterFunc _ _ = False
+
+        replaceRec :: [Types.Recipe] -> Types.Recipe -> [Types.Recipe]
+        replaceRec [] _ = []
+        replaceRec (rec1:t) rec2 =
+            if Types.recipeId rec1 == Types.recipeId rec2
+                then rec2 : t
+                else rec1 : replaceRec t rec2
+
+        removeRec :: [Types.Recipe] -> Types.Recipe -> [Types.Recipe]
+        removeRec [] _ = []
+        removeRec (rec1:t) rec2 =
+            if Types.recipeId rec1 == Types.recipeId rec2
+                then t
+                else rec1 : replaceRec t rec2
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
@@ -200,6 +219,7 @@ drawUI (CyanideState conn _ (RecipeSelectionScreen l orig _ _ _ se fltr f)) = [u
                              ]
                     , renderInstructions [ ("Alt-f","Filter list")
                                          , ("Alt-n","New recipe")
+                                         , ("Alt-r","Random recipe")
                                          , ("Esc","Previous screen")
                                          ]
                     ]

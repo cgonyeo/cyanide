@@ -58,12 +58,12 @@ CREATE TABLE "recipes_to_glasses" (
 );
 
 CREATE TABLE "ingredients_to_recipes" (
-    recipe_id          INTEGER       NOT NULL,
-    ingredient_id      INTEGER,
+    recipe_id           INTEGER       NOT NULL,
+    ingredient_id       INTEGER,
     ingredient_class_id INTEGER,
-    amount_numer       INTEGER       NOT NULL,
-    amount_denom       INTEGER       NOT NULL,
-    unit              VARCHAR(1024) NOT NULL,
+    amount_numer        INTEGER       NOT NULL,
+    amount_denom        INTEGER       NOT NULL,
+    unit                VARCHAR(1024) NOT NULL,
     FOREIGN KEY (recipe_id)     REFERENCES "recipes"     (id) ON DELETE CASCADE,
     FOREIGN KEY (ingredient_id) REFERENCES "ingredients" (id) ON DELETE CASCADE
 );

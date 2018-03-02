@@ -24,13 +24,19 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn _ (IngredientClassSelectionScreen l)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(IngredientClassSelectionScreen l)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
             B.continue $ s { stateScreen = MainSelectionScreen }
 
         Vty.EvKey (Vty.KChar 'd') [] ->
-            B.continue $ s { stateScreen = (IngredientClassDeletionScreen l) }
+            case BL.listSelectedElement l of
+                Nothing -> B.continue s
+                Just (_,ic) -> do
+                    isInUse <- liftIO $ IngredientClasses.isIngredientClassInUse conn ic
+                    if isInUse
+                        then B.continue $ s { stateScreen = (ErrorScreen "There are ingredients and/or recipes using that ingredient class." scr) }
+                        else B.continue $ s { stateScreen = (IngredientClassDeletionScreen l) }
 
         Vty.EvKey (Vty.KChar 'n') [] ->
             B.continue $ s { stateScreen = (IngredientClassInputScreen (BE.editorText "IngredientClassCreationScreen" (Just 1) "") Nothing l) }

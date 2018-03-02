@@ -14,10 +14,10 @@ calculateAvgPricePerOz ps = do
 
 -- convertToOz treats ounces as fluid ounces
 convertToOz :: Purchase -> Maybe Double
-convertToOz p = convertToOz' $ p { unit = T.toLower (unit p) }
+convertToOz pur = convertToOz' $ pur { unit = T.toLower (unit pur) }
         -- Base accepted units
-  where convertToOz' p@(Purchase _ _ _ v "oz") = Just (fromIntegral v)
-        convertToOz' p@(Purchase _ _ _ v "ml") = Just $ (fromIntegral v) / 29.57
+  where convertToOz' (Purchase _ _ _ v "oz") = Just (fromIntegral v)
+        convertToOz' (Purchase _ _ _ v "ml") = Just $ (fromIntegral v) / 29.57
 
         -- Metric conversions
         convertToOz' p@(Purchase _ _ _ v "cl") = convertToOz $ p { volume = 10 * v
@@ -38,17 +38,17 @@ convertToOz p = convertToOz' $ p { unit = T.toLower (unit p) }
         convertToOz' p@(Purchase _ _ _ v "kl") = convertToOz $ p { volume = 1000000 * v
                                                                  , unit = "ml"
                                                                  }
-        convertToOz' p@(Purchase _ _ _ v "millileter") = convertToOz $ p { unit = "ml" }
-        convertToOz' p@(Purchase _ _ _ v "centileter") = convertToOz $ p { unit = "cl" }
-        convertToOz' p@(Purchase _ _ _ v "leter") = convertToOz $ p { unit = "l" }
+        convertToOz' p@(Purchase _ _ _ _ "millileter") = convertToOz $ p { unit = "ml" }
+        convertToOz' p@(Purchase _ _ _ _ "centileter") = convertToOz $ p { unit = "cl" }
+        convertToOz' p@(Purchase _ _ _ _ "leter") = convertToOz $ p { unit = "l" }
 
         -- Imperial conversions
-        convertToOz' p@(Purchase _ _ _ v "oz.") = convertToOz $ p { unit = "oz" }
-        convertToOz' p@(Purchase _ _ _ v "ounce") = convertToOz $ p { unit = "oz" }
-        convertToOz' p@(Purchase _ _ _ v "ounces") = convertToOz $ p { unit = "oz" }
-        convertToOz' p@(Purchase _ _ _ v "fl oz") = convertToOz $ p { unit = "oz" }
-        convertToOz' p@(Purchase _ _ _ v "floz") = convertToOz $ p { unit = "oz" }
-        convertToOz' p@(Purchase _ _ _ v "fl. oz.") = convertToOz $ p { unit = "oz" }
+        convertToOz' p@(Purchase _ _ _ _ "oz.") = convertToOz $ p { unit = "oz" }
+        convertToOz' p@(Purchase _ _ _ _ "ounce") = convertToOz $ p { unit = "oz" }
+        convertToOz' p@(Purchase _ _ _ _ "ounces") = convertToOz $ p { unit = "oz" }
+        convertToOz' p@(Purchase _ _ _ _ "fl oz") = convertToOz $ p { unit = "oz" }
+        convertToOz' p@(Purchase _ _ _ _ "floz") = convertToOz $ p { unit = "oz" }
+        convertToOz' p@(Purchase _ _ _ _ "fl. oz.") = convertToOz $ p { unit = "oz" }
         convertToOz' p@(Purchase _ _ _ v "gl") = convertToOz $ p { volume = 128 * v
                                                                  , unit = "oz"
                                                                  }

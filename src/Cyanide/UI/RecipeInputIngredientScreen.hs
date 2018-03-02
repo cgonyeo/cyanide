@@ -2,7 +2,6 @@
 
 module Cyanide.UI.RecipeInputIngredientScreen where
 
-import Lens.Micro ((^.))
 import qualified Brick as B
 import qualified Brick.Widgets.List as BL
 import qualified Brick.Widgets.Edit as BE
@@ -12,8 +11,6 @@ import qualified Data.Vector as V
 import qualified Brick.Widgets.Center as BC
 import qualified Brick.Widgets.Border as BB
 import qualified Brick.Focus as BF
-import Data.Monoid
-import Text.Read
 import Data.Maybe
 import qualified Data.List as L
 import Control.Monad.IO.Class

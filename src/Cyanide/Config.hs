@@ -66,8 +66,8 @@ configParser = do
                     , configDatabase = database
                     }
     edCfg <- section "EDITOR" $ do
-        editor <- field "editor"
-        return $ EditorConfig editor
+        ed <- field "editor"
+        return $ EditorConfig ed
     return $ Config dbase edCfg
 
 getContentsSafe :: String -> IO (Either IOError String)

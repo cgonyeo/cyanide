@@ -6,7 +6,9 @@ module Cyanide.Data.Postgres where
 import Data.Word
 import qualified Data.Text as T
 import Database.PostgreSQL.Simple as P
+import Control.Monad
 
+initDbString :: P.Query
 initDbString =
     " BEGIN; \
     \ CREATE TABLE IF NOT EXISTS \"ingredient_classes\" ( \
@@ -78,5 +80,5 @@ newDBConn h po u pa d = P.connect (P.ConnectInfo (t h) po (t u) (t pa) (t d))
 
 initDb :: DBConn -> IO ()
 initDb conn = do
-    P.execute_ conn initDbString
+    void $ P.execute_ conn initDbString
     return ()

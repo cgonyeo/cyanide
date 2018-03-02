@@ -8,7 +8,6 @@ import qualified Data.Text as T
 
 import Control.Monad
 import Data.Maybe
-import Data.Time.Clock
 
 import Cyanide.Data.Types
 import Cyanide.Data.Postgres
@@ -29,13 +28,13 @@ getRecipes conn = do
     forM results $ fillInIngredient conn
 
 fillInIngredient :: DBConn -> (Int,Maybe T.Text,T.Text,T.Text,Maybe Int) -> IO Recipe
-fillInIngredient conn (id,_,garnish,instr,Just ingredientId) = do
-    ingredient <- getIngredient conn ingredientId
-    return $ Recipe id (Right ingredient) garnish instr
-fillInIngredient _ (id,Just name,garnish,instr,_) =
-    return $ Recipe id (Left name) garnish instr
-fillInIngredient _ (id,Nothing,garnish,instr,Nothing) =
-    return $ Recipe id (Left "") garnish instr
+fillInIngredient conn (recId,_,garnish,instr,Just ingId) = do
+    ingredient <- getIngredient conn ingId
+    return $ Recipe recId (Right ingredient) garnish instr
+fillInIngredient _ (recId,Just name,garnish,instr,_) =
+    return $ Recipe recId (Left name) garnish instr
+fillInIngredient _ (recId,Nothing,garnish,instr,Nothing) =
+    return $ Recipe recId (Left "") garnish instr
 
 getRecipesUsingIngredientClass :: DBConn -> IngredientClass -> IO [Recipe]
 getRecipesUsingIngredientClass conn ic = do
@@ -117,6 +116,9 @@ getIngredientsForRecipe conn (Recipe i _ _ _) = do
             (Nothing,Just classId) -> do
                 cla <- getIngredientClass conn classId
                 return $ IngredientListItem num den u (Right cla)
+            _ -> do
+                putStrLn "reached impossible state in getIngredientsForRecipe"
+                undefined
 
 getRecipesToIngredientClasses :: DBConn -> IO [(Int,Int)]
 getRecipesToIngredientClasses conn = do
@@ -156,9 +158,9 @@ newRecipe conn (mName,garnish,instr,mGlass,mIngr,ingredients) = do
 updateRecipe :: DBConn -> Int -> (Maybe T.Text,T.Text,T.Text,Maybe Glass,Maybe Ingredient,[IngredientListItem]) -> IO Recipe
 updateRecipe conn recId (mName,garnish,instr,mGlass,mIngr,ingredients) = do
     -- Update the recipe
-    P.execute conn "UPDATE recipes SET name = ?, garnish = ?, instructions = ?, for_ingredient_id = ? WHERE id = ?" (mName,garnish,instr,mIngr >>= Just . ingredientId,recId)
-    P.execute conn "DELETE FROM recipes_to_glasses WHERE recipe_id = ?" (P.Only recId)
-    P.execute conn "DELETE FROM ingredients_to_recipes WHERE recipe_id = ?" (P.Only recId)
+    void $ P.execute conn "UPDATE recipes SET name = ?, garnish = ?, instructions = ?, for_ingredient_id = ? WHERE id = ?" (mName,garnish,instr,mIngr >>= Just . ingredientId,recId)
+    void $ P.execute conn "DELETE FROM recipes_to_glasses WHERE recipe_id = ?" (P.Only recId)
+    void $ P.execute conn "DELETE FROM ingredients_to_recipes WHERE recipe_id = ?" (P.Only recId)
     createGlassAndIngredients conn recId mGlass ingredients
     let recName = case (mIngr,mName) of
                 (Just i,_) -> Right i
@@ -171,21 +173,17 @@ createGlassAndIngredients conn recId mGlass ingredients = do
     -- If there's a glass, create it
     case mGlass of
         Nothing -> return ()
-        (Just g) -> do
-            P.execute conn "INSERT INTO recipes_to_glasses (glass_id,recipe_id) VALUES (?,?)" (glassId g,recId)
-            return ()
+        (Just g) ->
+            void $ P.execute conn "INSERT INTO recipes_to_glasses (glass_id,recipe_id) VALUES (?,?)" (glassId g,recId)
 
     -- Create the ingredient mappings
-    forM_ ingredients $ \(IngredientListItem num den unit ingOrCla) ->
+    forM_ ingredients $ \(IngredientListItem num den un ingOrCla) ->
         case ingOrCla of
-            Left ing -> do
-                P.execute conn "INSERT INTO ingredients_to_recipes (recipe_id,ingredient_id,amount_numer,amount_denom,unit) VALUES (?,?,?,?,?)" (recId,ingredientId ing,num,den,unit)
-                return ()
-            Right ingCla -> do
-                P.execute conn "INSERT INTO ingredients_to_recipes (recipe_id,ingredient_class_id,amount_numer,amount_denom,unit) VALUES (?,?,?,?,?)" (recId,ingredientClassId ingCla,num,den,unit)
-                return ()
+            Left ing ->
+                void $ P.execute conn "INSERT INTO ingredients_to_recipes (recipe_id,ingredient_id,amount_numer,amount_denom,unit) VALUES (?,?,?,?,?)" (recId,ingredientId ing,num,den,un)
+            Right ingCla ->
+                void $ P.execute conn "INSERT INTO ingredients_to_recipes (recipe_id,ingredient_class_id,amount_numer,amount_denom,unit) VALUES (?,?,?,?,?)" (recId,ingredientClassId ingCla,num,den,un)
 
 deleteRecipe :: DBConn -> Recipe -> IO ()
-deleteRecipe conn (Recipe i _ _ _) = do
-    P.execute conn "DELETE FROM recipes WHERE id = ?" (P.Only i)
-    return ()
+deleteRecipe conn (Recipe i _ _ _) =
+    void $ P.execute conn "DELETE FROM recipes WHERE id = ?" (P.Only i)
