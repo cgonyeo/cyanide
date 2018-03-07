@@ -5,6 +5,7 @@ module Cyanide.UI.Util where
 import qualified Brick as B
 import qualified Brick.Widgets.Center as BC
 import qualified Brick.Widgets.Edit as BE
+import qualified Brick.Focus as BF
 import qualified Data.Text as T
 import qualified Data.List as L
 import qualified Text.Read as TR
@@ -87,6 +88,20 @@ readFraction str
         n <- TR.readMaybe p1
         d <- TR.readMaybe p2
         return $ Fraction n d
+    | str == "" = Just (Fraction 0 1)
     | otherwise = do
         n <- TR.readMaybe str
         return $ Fraction n 1
+
+setFocusTo :: BF.FocusRing Name -> Name -> BF.FocusRing Name
+setFocusTo f n =
+    let firstFocus = BF.focusGetCurrent f
+    in setFocusTo' firstFocus (BF.focusNext f) n
+  where setFocusTo' :: Maybe Name -> BF.FocusRing Name -> Name -> BF.FocusRing Name
+        setFocusTo' firstFocus f n =
+            case BF.focusGetCurrent f of
+                Nothing -> f
+                (Just n')
+                    | Just n' == firstFocus -> f
+                    | n' == n               -> f
+                    | otherwise             -> setFocusTo' firstFocus (BF.focusNext f) n

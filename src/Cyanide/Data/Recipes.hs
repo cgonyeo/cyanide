@@ -122,13 +122,11 @@ getIngredientsForRecipe conn (Recipe i _ _ _) = do
 
 getRecipesToIngredientClasses :: DBConn -> IO [(Int,Int)]
 getRecipesToIngredientClasses conn = do
-    res1 :: [(Int,Maybe Int)] <- P.query_ conn
-        "SELECT recipes.id, ingredients_to_recipes.ingredient_class_id FROM recipes INNER JOIN ingredients_to_recipes ON recipes.id = ingredients_to_recipes.recipe_id"
-    res2 :: [(Int,Maybe Int)] <- P.query_ conn
-        "SELECT recipes.id, ingredients.class FROM recipes INNER JOIN ingredients_to_recipes ON recipes.id = ingredients_to_recipes.recipe_id inner join ingredients on ingredients.id=ingredients_to_recipes.recipe_id"
-    return $ map fromJust $ filter isJust $ map f (res1 ++ res2)
-  where f (i,Just j) = Just (i,j)
-        f _ = Nothing
+    res1 :: [(Int,Int)] <- P.query_ conn
+        "SELECT recipes.id, ingredients_to_recipes.ingredient_class_id as icid FROM recipes INNER JOIN ingredients_to_recipes ON recipe_id = recipes.id WHERE ingredients_to_recipes.ingredient_class_id IS NOT NULL"
+    res2 :: [(Int,Int)] <- P.query_ conn
+        "SELECT recipes.id, ingredients.class FROM recipes INNER JOIN ingredients_to_recipes ON recipes.id = ingredients_to_recipes.recipe_id inner join ingredients on ingredients.id=ingredients_to_recipes.ingredient_id WHERE ingredients.class IS NOT NULL"
+    return (res1 ++ res2)
 
 getRecipesToGlasses :: DBConn -> IO [(Int,Int)]
 getRecipesToGlasses conn = do

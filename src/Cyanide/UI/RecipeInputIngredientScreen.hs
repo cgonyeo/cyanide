@@ -37,8 +37,45 @@ ingrListName = "RecipeInputIngredientList"
 attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
+newRecipeInputIngredientScreen :: Postgres.DBConn -> Maybe Types.IngredientListItem -> (Maybe Types.IngredientListItem -> CyanideScreen) -> IO CyanideScreen
+newRecipeInputIngredientScreen conn mi prev = do
+    -- Construct the original list of ingredient options
+    ics <- liftIO $ IngredientClasses.getIngredientClasses conn
+    is <- liftIO $ Ingredients.getIngredients conn
+    let ingrListOrig = map (\(Types.IngredientClass i n) -> IngredientClassListItem i n) ics
+                    ++ map (\(Types.Ingredient i n _ _ _) -> IngredientListItem i n) is
+
+    -- Construct the UI elements
+    let (ae,ue,fe,l) =
+            case mi of
+                Nothing -> ( BE.editor amountName (Just 1) ""
+                           , BE.editor unitName (Just 1) ""
+                           , BE.editor filterName (Just 1) ""
+                           , BL.list ingrListName (V.fromList ingrListOrig) 1
+                           )
+                Just ili -> ( BE.editor amountName (Just 1) (T.pack $ show (Fraction (Types.amountNumer ili) (Types.amountDenom ili)))
+                            , BE.editor unitName (Just 1) (Types.ingListItemUnit ili)
+                            , BE.editor filterName (Just 1) ""
+                            , BL.listMoveTo (findIndex (Types.ingListItemIng ili) ingrListOrig)
+                                    $ BL.list ingrListName (V.fromList ingrListOrig) 1
+                            )
+        f = BF.focusRing [ amountName
+                         , unitName
+                         , filterName
+                         , ingrListName
+                         ]
+    return $ RecipeInputIngredientScreen ae ue fe ingrListOrig l f prev
+  where findIndex (Left i) il = case L.elemIndex (IngredientListItem (Types.ingredientId i) (Types.ingredientName i)) il of
+                                    Nothing -> 0
+                                    Just n -> n
+        findIndex (Right ic) il = case L.elemIndex (IngredientClassListItem (Types.ingredientClassId ic) (Types.ingredientClassName ic)) il of
+                                    Nothing -> 0
+                                    Just n -> n
+
+
+
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn _ scr@(RecipeInputIngredientScreen rname amountEd unitEd filterEd ingrListOrig ingrList f goBack)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(RecipeInputIngredientScreen amountEd unitEd filterEd ingrListOrig ingrList f goBack)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
             let newScr = goBack Nothing
@@ -119,13 +156,11 @@ handleEvent s@(CyanideState conn _ scr@(RecipeInputIngredientScreen rname amount
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn _ (RecipeInputIngredientScreen rname amountEd unitEd filterEd _ ingrList f goBack)) = [ui]
+drawUI (CyanideState conn _ (RecipeInputIngredientScreen amountEd unitEd filterEd _ ingrList f goBack)) = [ui]
     where amountRenderedEd = BF.withFocusRing f (BE.renderEditor drawEdit) amountEd
           unitRenderedEd = BF.withFocusRing f (BE.renderEditor drawEdit) unitEd
           filterRenderedEd = BF.withFocusRing f (BE.renderEditor drawEdit) filterEd
           ingrRenderedLst = BF.withFocusRing f (BL.renderList drawList) ingrList
-
-          prompt = "Adding an ingredient to " `T.append` rname
 
           leftColumn = BC.vCenter
                         $ B.vBox [ BC.hCenter $ B.txt "Amount"
@@ -145,8 +180,7 @@ drawUI (CyanideState conn _ (RecipeInputIngredientScreen rname amountEd unitEd f
           ui = BC.center
                $ B.hLimit 80
                $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txt prompt
-                            , B.hBox [ leftColumn
+                            [ B.hBox [ leftColumn
                                      , rightColumn
                                      ]
                             , renderInstructions [ ("Enter","Add ingredient")

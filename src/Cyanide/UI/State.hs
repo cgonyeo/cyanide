@@ -116,8 +116,7 @@ data CyanideScreen
         , recipeInputPreviousScreen :: Maybe (Types.Recipe,Maybe Types.Glass,[Types.IngredientListItem]) -> IO CyanideScreen
         }
     | RecipeInputIngredientScreen
-        { recipeInputIngredientRecipeName    :: T.Text
-        , recipeInputIngredientAmount        :: BE.Editor T.Text Name
+        { recipeInputIngredientAmount        :: BE.Editor T.Text Name
         , recipeInputIngredientUnit          :: BE.Editor T.Text Name
         , recipeInputIngredientFilter        :: BE.Editor T.Text Name
         , recipeInputIngredientListOrig      :: [RecipeInputIngrListItem]
@@ -139,6 +138,7 @@ data CyanideScreen
 
 data RecipeInputIngrListItem = IngredientListItem Int T.Text
                              | IngredientClassListItem Int T.Text
+    deriving(Eq)
 
 getListItemName :: RecipeInputIngrListItem -> T.Text
 getListItemName (IngredientListItem _ n) = n

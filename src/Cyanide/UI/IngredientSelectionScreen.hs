@@ -71,30 +71,16 @@ handleEvent s@(CyanideState conn _ scr@(IngredientSelectionScreen l orig se f)) 
                 in B.continue $ s { stateScreen = scr { ingredientListFocusRing = newFocus } }
             else B.continue s
           where goBack n (Just i) = let newList = BL.listModify (\_ -> i) l
-                                        newOrig = replaceIng orig i
+                                        newOrig = map (\i' -> if Types.ingredientId i == Types.ingredientId i' then i else i') orig
                                     in scr { ingredientSelectionList = newList
                                            , ingredientListOrig = newOrig
                                            }
                 goBack n Nothing = let newList = BL.listRemove n l
                                        Just (_,ingr) = BL.listSelectedElement l
-                                       newOrig = removeIng orig ingr
+                                       newOrig = filter (\i' -> Types.ingredientId i' /= Types.ingredientId ingr) orig
                                    in scr { ingredientSelectionList = newList
                                           , ingredientListOrig = newOrig
                                           }
-
-                replaceIng :: [Types.Ingredient] -> Types.Ingredient -> [Types.Ingredient]
-                replaceIng [] _ = []
-                replaceIng (ing1:t) ing2 =
-                    if Types.ingredientId ing1 == Types.ingredientId ing2
-                        then ing2 : t
-                        else ing1 : replaceIng t ing2
-
-                removeIng :: [Types.Ingredient] -> Types.Ingredient -> [Types.Ingredient]
-                removeIng [] _ = []
-                removeIng (ing1:t) ing2 =
-                    if Types.ingredientId ing1 == Types.ingredientId ing2
-                        then t
-                        else ing1 : replaceIng t ing2
 
         Vty.EvKey (Vty.KChar 'n') [Vty.MMeta] -> do
             ics <- liftIO $ IngredientClasses.getIngredientClasses conn
@@ -107,9 +93,16 @@ handleEvent s@(CyanideState conn _ scr@(IngredientSelectionScreen l orig se f)) 
             B.continue $ s { stateScreen = IngredientInputScreen ed iclist f False Nothing (return . goBack) }
           where goBack Nothing = scr
                 goBack (Just (i,_)) =
-                    let newList = BL.listInsert (length l) i l
-                        newList' = BL.listMoveTo (length newList) newList
-                    in scr { ingredientSelectionList = newList' }
+                    let newOrig = L.sortBy (\x y -> let f = T.toLower . Types.ingredientName in compare (f x) (f y)) (i:orig)
+                        [(index,_)] = filter ((==i) . snd) $ zip [0..] newOrig
+                        newList = BL.listReplace (V.fromList newOrig) (Just index) l
+                        newEdit = BE.editorText searchName (Just 1) ""
+                        newFocus = setFocusTo f ingredientsName
+                    in scr { ingredientSelectionList = newList
+                           , ingredientListOrig = newOrig
+                           , ingredientListSearch = newEdit
+                           , ingredientListFocusRing = newFocus
+                           }
 
         ev -> if BF.focusGetCurrent (f) == Just ingredientsName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev l

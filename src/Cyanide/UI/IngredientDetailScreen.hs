@@ -226,6 +226,9 @@ drawUI (CyanideState conn _ (IngredientDetailScreen ing pl rl mr f prev)) = [ui]
                      ] ++ case avgCost of
                             Nothing -> []
                             Just cost -> [ addRow ingredientInfoLabelSize "Avg Cost" [B.txt $ formatMoney cost `T.append` "/oz" ] ]
+                       ++ case mr of
+                            Nothing -> []
+                            Just _ -> [ addRow ingredientInfoLabelSize "Recipe" [B.txt "Available"]]
 
           -- TODO: alternate UI for ingredients not used in recipes
           ui = BC.center

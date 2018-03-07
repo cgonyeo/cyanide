@@ -97,7 +97,7 @@ handleEvent s@(CyanideState _ _ (RecipeDetailScreen _ _ _ _)) e =
     RecipeDetailScreen.handleEvent s e
 handleEvent s@(CyanideState _ _ (RecipeInputScreen _ _ _ _ _ _ _ _ _)) e =
     RecipeInputScreen.handleEvent s e
-handleEvent s@(CyanideState _ _ (RecipeInputIngredientScreen _ _ _ _ _ _ _ _)) e =
+handleEvent s@(CyanideState _ _ (RecipeInputIngredientScreen _ _ _ _ _ _ _)) e =
     RecipeInputIngredientScreen.handleEvent s e
 handleEvent s@(CyanideState _ _ (RecipeDeletionScreen _ _)) e =
     RecipeDeletionScreen.handleEvent s e
@@ -141,7 +141,7 @@ drawUI s@(CyanideState _ _ (RecipeDetailScreen _ _ _ _)) =
     RecipeDetailScreen.drawUI s
 drawUI s@(CyanideState _ _ (RecipeInputScreen _ _ _ _ _ _ _ _ _)) =
     RecipeInputScreen.drawUI s
-drawUI s@(CyanideState _ _ (RecipeInputIngredientScreen _ _ _ _ _ _ _ _)) =
+drawUI s@(CyanideState _ _ (RecipeInputIngredientScreen _ _ _ _ _ _ _)) =
     RecipeInputIngredientScreen.drawUI s
 drawUI s@(CyanideState _ _ (RecipeDeletionScreen _ _)) =
     RecipeDeletionScreen.drawUI s

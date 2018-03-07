@@ -91,12 +91,12 @@ handleEvent s@(CyanideState conn _ scr@(RecipeSelectionScreen l orig toICs toGs 
             B.continue $ s { stateScreen = RecipeDetailScreen r glass ingrs (goBack num) }
           where goBack j Nothing = let newList = BL.listRemove j l
                                        Just (_,rec) = BL.listSelectedElement l
-                                       newOrig = removeRec orig rec
+                                       newOrig = filter (/=rec) orig
                                    in return $ scr { recipeList = newList
                                                    , recipeListOrig = newOrig
                                                    }
                 goBack j (Just (r,_,_)) = let newList = BL.listInsert j r $ BL.listRemove j l
-                                              newOrig = replaceRec orig r
+                                              newOrig = map (\r' -> if Types.recipeId r == Types.recipeId r' then r else r') orig
                                           in return $ scr { recipeList = newList
                                                           , recipeListOrig = newOrig
                                                           }
@@ -129,12 +129,12 @@ handleEvent s@(CyanideState conn _ scr@(RecipeSelectionScreen l orig toICs toGs 
             else B.continue s
           where goBack j Nothing = let newList = BL.listRemove j l
                                        Just (_,rec) = BL.listSelectedElement l
-                                       newOrig = removeRec orig rec
+                                       newOrig = filter (/=rec) orig
                                    in return $ scr { recipeList = newList
                                                    , recipeListOrig = newOrig
                                                    }
                 goBack _ (Just (r,_,_)) = let newList = BL.listModify (\_ -> r) l
-                                              newOrig = replaceRec orig r
+                                              newOrig = map (\r' -> if Types.recipeId r == Types.recipeId r' then r else r') orig
                                           in return $ scr { recipeList = newList
                                                           , recipeListOrig = newOrig
                                                           }
@@ -171,7 +171,7 @@ handleEvent s@(CyanideState conn _ scr@(RecipeSelectionScreen l orig toICs toGs 
         filterOutIc :: Maybe Types.IngredientClass -> [Types.Recipe] -> [Types.Recipe]
         filterOutIc Nothing rs = rs
         filterOutIc (Just (Types.IngredientClass icId _)) rs =
-            filter (\(Types.Recipe recId _ _ _) -> lookForId recId icId toICs) rs
+            filter (\(Types.Recipe recId _ _ _) -> elem (recId,icId) toICs) rs
 
         filterOutG :: Maybe Types.Glass -> [Types.Recipe] -> [Types.Recipe]
         filterOutG Nothing rs = rs
@@ -191,20 +191,6 @@ handleEvent s@(CyanideState conn _ scr@(RecipeSelectionScreen l orig toICs toGs 
 
         filterFunc filterText (Types.Recipe _ (Left n) _ _) = L.isInfixOf (T.unpack $ T.toLower filterText) (T.unpack $ T.toLower n)
         filterFunc _ _ = False
-
-        replaceRec :: [Types.Recipe] -> Types.Recipe -> [Types.Recipe]
-        replaceRec [] _ = []
-        replaceRec (rec1:t) rec2 =
-            if Types.recipeId rec1 == Types.recipeId rec2
-                then rec2 : t
-                else rec1 : replaceRec t rec2
-
-        removeRec :: [Types.Recipe] -> Types.Recipe -> [Types.Recipe]
-        removeRec [] _ = []
-        removeRec (rec1:t) rec2 =
-            if Types.recipeId rec1 == Types.recipeId rec2
-                then t
-                else rec1 : replaceRec t rec2
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]

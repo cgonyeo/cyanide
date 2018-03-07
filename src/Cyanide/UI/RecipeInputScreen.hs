@@ -89,43 +89,13 @@ handleEvent s@(CyanideState conn conf scr@(RecipeInputScreen nameEd garnishEd gl
             in B.continue $ s { stateScreen = scr { recipeInputFocusRing = newFocus } }
 
         Vty.EvKey (Vty.KChar 'a') [Vty.MMeta] -> do
-            -- Construct the original list of ingredient options
-            ics <- liftIO $ IngredientClasses.getIngredientClasses conn
-            is <- liftIO $ Ingredients.getIngredients conn
-            let ingrListOrig = map (\(Types.IngredientClass i n) -> IngredientClassListItem i n) ics
-                            ++ map (\(Types.Ingredient i n _ _ _) -> IngredientListItem i n) is
-
-            -- Construct the UI elements
-            let amountEditor = BE.editor RecipeInputIngredient.amountName (Just 1) ""
-                unitEditor = BE.editor RecipeInputIngredient.unitName (Just 1) ""
-                filterEditor = BE.editor RecipeInputIngredient.filterName (Just 1) ""
-                ingList = BL.list RecipeInputIngredient.ingrListName (V.fromList ingrListOrig) 1
-                f = BF.focusRing [ RecipeInputIngredient.amountName
-                                 , RecipeInputIngredient.unitName
-                                 , RecipeInputIngredient.filterName
-                                 , RecipeInputIngredient.ingrListName
-                                 ]
-                name = case (mr,recipeFor) of
-                          -- We're editing an existing recipe
-                          (Just r,_) -> case Types.recipeName r of
-                                          -- It's a standalone recipe
-                                          Left n -> "\"" `T.append` n `T.append` "\""
-                                          -- It's a recipe for an ingredient
-                                          Right i -> "the recipe for \"" `T.append` Types.ingredientName i `T.append` "\""
-                          -- It's a new recipe for an ingredient
-                          (_,Just i) -> "the recipe for \"" `T.append` Types.ingredientName i `T.append` "\""
-                          -- It's a new standalone recipe
-                          (Nothing,Nothing) -> (\mn -> if isJust mn then "\"" `T.append` fromJust mn `T.append` "\"" else "\"\"") $ getEditorLine nameEd
-
-
-            -- Give a function for getting back here
-                getBack = (\mil -> case mil of
-                                    Just i@(Types.IngredientListItem _ _ _ _) ->
+            newScr <- liftIO $ RecipeInputIngredient.newRecipeInputIngredientScreen conn Nothing getBack
+            B.continue $ s { stateScreen = newScr }
+          where getBack mil = case mil of
+                                    Just i ->
                                         let newList = BL.listInsert (length il) i il
                                         in scr { recipeInputIngredientList = newList }
-                                    Nothing -> scr)
-
-            B.continue $ s { stateScreen = (RecipeInputIngredientScreen name amountEditor unitEditor filterEditor ingrListOrig ingList f getBack) }
+                                    Nothing -> scr
 
         Vty.EvKey (Vty.KChar 'i') [Vty.MMeta] -> do
             mEditorEnv <- liftIO $ getEnv "EDITOR"
@@ -149,6 +119,18 @@ handleEvent s@(CyanideState conn conf scr@(RecipeInputScreen nameEd garnishEd gl
                 else let Just (i,_) = BL.listSelectedElement il
                          newList = BL.listRemove i il
                      in B.continue $ s { stateScreen = scr { recipeInputIngredientList = newList } }
+
+        Vty.EvKey (Vty.KChar 'e') [Vty.MMeta] ->
+            if BF.focusGetCurrent f /= Just ingredientsName || length il == 0
+                then B.continue s
+                else do let Just (_,i) = BL.listSelectedElement il
+                        newScr <- liftIO $ RecipeInputIngredient.newRecipeInputIngredientScreen conn (Just i) getBack
+                        B.continue $ s { stateScreen = newScr }
+          where getBack mil = case mil of
+                                Nothing -> scr
+                                Just i ->
+                                    let newList = BL.listModify (\_ -> i) il
+                                    in scr { recipeInputIngredientList = newList }
 
         Vty.EvKey (Vty.KEnter) [] -> do
             let name = getEditorLine nameEd
@@ -235,6 +217,7 @@ drawUI (CyanideState conn _ (RecipeInputScreen nameEd garnishEd gl il instr reci
                         then [ B.txt "Alt-i - Edit instructions"
                              , B.txt "Alt-a - Add ingredient"
                              , B.txt "Alt-d - Delete ingredient"
+                             , B.txt "Alt-e - Edit ingredient"
                              ]
                         else [ B.txt "Alt-i - Edit instructions"
                              , B.txt "Alt-a - Add ingredient"
