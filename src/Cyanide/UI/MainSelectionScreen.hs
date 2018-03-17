@@ -71,24 +71,21 @@ handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn _ MainSelectionScreen) = 
-    [ BC.center
-        $ B.hLimit 80
-        $ B.vLimit 25
-        $ B.hBox [ bottle1
-                 , B.txt "   "
-                 , B.hLimit 35
-                        $ B.vBox [ BC.hCenter $ B.txt "Cyanide: home bar management system"
-                                 , BC.hCenter $ BB.hBorder
-                                 , renderInstructions [ ("r","Recipes")
-                                                      , ("i","Ingredients")
-                                                      , ("g","Glasses")
-                                                      , ("c","Ingredient classes")
-                                                      , ("Esc","Exit")
-                                                      ]
-                                 ]
-                 , B.txt "   "
-                 , bottle1
-                 ]
+    [ B.hBox [ bottle1
+             , B.txt "   "
+             , B.hLimit 35
+                    $ B.vBox [ BC.hCenter $ B.txt "Cyanide: home bar management system"
+                             , BC.hCenter $ BB.hBorder
+                             , renderInstructions [ ("r","Recipes")
+                                                  , ("i","Ingredients")
+                                                  , ("g","Glasses")
+                                                  , ("c","Ingredient classes")
+                                                  , ("Esc","Exit")
+                                                  ]
+                             ]
+             , B.txt "   "
+             , bottle1
+             ]
     ]
   where bottle1 = B.vBox
             [ B.txt "  [~]  "

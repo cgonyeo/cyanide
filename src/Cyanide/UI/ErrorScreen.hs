@@ -30,11 +30,8 @@ handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn _ (ErrorScreen msg _)) = [ui]
-    where ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txtWrap msg
-                            , B.txt " "
-                            , renderInstructions [ ("Esc","Previous screen")
-                                                 ]
-                            ]
+    where ui =  B.vBox [ BC.hCenter $ B.txtWrap msg
+                       , B.txt " "
+                       , renderInstructions [ ("Esc","Previous screen")
+                                            ]
+                       ]

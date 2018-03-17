@@ -43,12 +43,9 @@ handleEvent s _ = B.continue s
 drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn _ (GlassDeletionScreen l)) = [ui]
     where Just (_,(Types.Glass _ n)) = BL.listSelectedElement l
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txt $ "Are you sure you want to delete the following glass?"
-                            , BC.hCenter $ B.padAll 1 $ B.txt n
-                            , renderInstructions [ ("y","Yes")
-                                                 , ("n","No")
-                                                 ]
-                            ]
+          ui =  B.vBox [ BC.hCenter $ B.txt $ "Are you sure you want to delete the following glass?"
+                       , BC.hCenter $ B.padAll 1 $ B.txt n
+                       , renderInstructions [ ("y","Yes")
+                                            , ("n","No")
+                                            ]
+                       ]

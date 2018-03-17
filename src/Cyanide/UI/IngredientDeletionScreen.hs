@@ -47,7 +47,7 @@ handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn _ (IngredientDeletionScreen ingr usedIn mr _)) = [ui]
-    where uiContent =
+    where ui =
             case (length usedIn,mr) of
                 (0,Nothing) -> 
                     B.vBox [ BC.hCenter $ B.txt "Are you sure you want to delete the following ingredient?"
@@ -70,7 +70,3 @@ drawUI (CyanideState conn _ (IngredientDeletionScreen ingr usedIn mr _)) = [ui]
                            , renderInstructions [ ("Esc","Previous screen")
                                                 ]
                            ]
-
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 uiContent

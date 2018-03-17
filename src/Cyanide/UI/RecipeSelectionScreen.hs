@@ -197,9 +197,7 @@ drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn _ (RecipeSelectionScreen l orig _ _ _ se fltr f)) = [ui]
     where editor = BF.withFocusRing f (BE.renderEditor drawEdit) se
           recipeList = BF.withFocusRing f (BL.renderList listDrawRecipe) l
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
+          ui = B.vBox
                     [ B.vBox [ BB.borderWithLabel (B.txt "Search") editor
                              , BB.borderWithLabel (B.txt "Recipes") recipeList
                              ]

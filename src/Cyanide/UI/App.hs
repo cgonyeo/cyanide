@@ -12,6 +12,7 @@ import qualified Cyanide.Data.Types as Types
 import qualified Cyanide.Data.Postgres as Postgres
 
 import Cyanide.UI.State
+import Cyanide.UI.Util
 import qualified Cyanide.Config as Config
 
 import qualified Cyanide.UI.RecipeSelectionScreen as RecipeSelectionScreen
@@ -37,7 +38,7 @@ import qualified Cyanide.UI.IngredientClassInputScreen as IngredientClassInputSc
 
 run :: Postgres.DBConn -> Config.Config -> IO ()
 run conn config = do
-    let initialState = CyanideState conn config MainSelectionScreen
+    let initialState = CyanideState conn (GlobalState config) MainSelectionScreen
     void $ B.defaultMain app initialState
 
 app :: B.App CyanideState () Name
@@ -101,7 +102,7 @@ handleEvent s@(CyanideState _ _ (RecipeInputIngredientScreen _ _ _ _ _ _ _)) e =
     RecipeInputIngredientScreen.handleEvent s e
 handleEvent s@(CyanideState _ _ (RecipeDeletionScreen _ _)) e =
     RecipeDeletionScreen.handleEvent s e
-handleEvent s@(CyanideState _ _ (IngredientSelectionScreen _ _ _ _)) e =
+handleEvent s@(CyanideState _ _ (IngredientSelectionScreen _ _ _ _ _)) e =
     IngredientSelectionScreen.handleEvent s e
 handleEvent s@(CyanideState _ _ (IngredientInputScreen _ _ _ _ _ _)) e =
     IngredientInputScreen.handleEvent s e
@@ -124,42 +125,42 @@ handleEvent s@(CyanideState _ _ (IngredientClassInputScreen _ _ _)) e =
 
 drawUI :: CyanideState -> [B.Widget Name]
 drawUI s@(CyanideState _ _ MainSelectionScreen) =
-    MainSelectionScreen.drawUI s
+    addGlobalUI s $ MainSelectionScreen.drawUI s
 drawUI s@(CyanideState _ _ (ErrorScreen _ _)) =
-    ErrorScreen.drawUI s
+    addGlobalUI s $ ErrorScreen.drawUI s
 drawUI s@(CyanideState _ _ (GlassSelectionScreen _)) =
-    GlassSelectionScreen.drawUI s
+    addGlobalUI s $ GlassSelectionScreen.drawUI s
 drawUI s@(CyanideState _ _ (GlassDeletionScreen _)) =
-    GlassDeletionScreen.drawUI s
+    addGlobalUI s $ GlassDeletionScreen.drawUI s
 drawUI s@(CyanideState _ _ (GlassInputScreen _ _ _)) =
-    GlassInputScreen.drawUI s
+    addGlobalUI s $ GlassInputScreen.drawUI s
 drawUI s@(CyanideState _ _ (RecipeSelectionScreen _ _ _ _ _ _ _ _)) =
-    RecipeSelectionScreen.drawUI s
+    addGlobalUI s $ RecipeSelectionScreen.drawUI s
 drawUI s@(CyanideState _ _ (RecipeSelectionFilterScreen _ _ _)) =
-    RecipeSelectionFilterScreen.drawUI s
+    addGlobalUI s $ RecipeSelectionFilterScreen.drawUI s
 drawUI s@(CyanideState _ _ (RecipeDetailScreen _ _ _ _)) =
-    RecipeDetailScreen.drawUI s
+    addGlobalUI s $ RecipeDetailScreen.drawUI s
 drawUI s@(CyanideState _ _ (RecipeInputScreen _ _ _ _ _ _ _ _ _)) =
-    RecipeInputScreen.drawUI s
+    addGlobalUI s $ RecipeInputScreen.drawUI s
 drawUI s@(CyanideState _ _ (RecipeInputIngredientScreen _ _ _ _ _ _ _)) =
-    RecipeInputIngredientScreen.drawUI s
+    addGlobalUI s $ RecipeInputIngredientScreen.drawUI s
 drawUI s@(CyanideState _ _ (RecipeDeletionScreen _ _)) =
-    RecipeDeletionScreen.drawUI s
-drawUI s@(CyanideState _ _ (IngredientSelectionScreen _ _ _ _)) =
-    IngredientSelectionScreen.drawUI s
+    addGlobalUI s $ RecipeDeletionScreen.drawUI s
+drawUI s@(CyanideState _ _ (IngredientSelectionScreen _ _ _ _ _)) =
+    addGlobalUI s $ IngredientSelectionScreen.drawUI s
 drawUI s@(CyanideState _ _ (IngredientInputScreen _ _ _ _ _ _)) =
-    IngredientInputScreen.drawUI s
+    addGlobalUI s $ IngredientInputScreen.drawUI s
 drawUI s@(CyanideState _ _ (IngredientDetailScreen _ _ _ _ _ _)) =
-    IngredientDetailScreen.drawUI s
+    addGlobalUI s $ IngredientDetailScreen.drawUI s
 drawUI s@(CyanideState _ _ (IngredientDeletionScreen _ _ _ _)) =
-    IngredientDeletionScreen.drawUI s
+    addGlobalUI s $ IngredientDeletionScreen.drawUI s
 drawUI s@(CyanideState _ _ (PurchaseDeletionScreen _ _ _)) =
-    PurchaseDeletionScreen.drawUI s
+    addGlobalUI s $ PurchaseDeletionScreen.drawUI s
 drawUI s@(CyanideState _ _ (PurchaseCreationScreen _ _ _ _ _ _ _)) =
-    PurchaseCreationScreen.drawUI s
+    addGlobalUI s $ PurchaseCreationScreen.drawUI s
 drawUI s@(CyanideState _ _ (IngredientClassSelectionScreen _)) =
-    IngredientClassSelectionScreen.drawUI s
+    addGlobalUI s $ IngredientClassSelectionScreen.drawUI s
 drawUI s@(CyanideState _ _ (IngredientClassDeletionScreen _)) =
-    IngredientClassDeletionScreen.drawUI s
+    addGlobalUI s $ IngredientClassDeletionScreen.drawUI s
 drawUI s@(CyanideState _ _ (IngredientClassInputScreen _ _ _)) =
-    IngredientClassInputScreen.drawUI s
+    addGlobalUI s $ IngredientClassInputScreen.drawUI s

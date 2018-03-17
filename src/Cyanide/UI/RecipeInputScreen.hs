@@ -78,7 +78,7 @@ attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn conf scr@(RecipeInputScreen nameEd garnishEd gl il instr recipeFor mr f prev)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn gs scr@(RecipeInputScreen nameEd garnishEd gl il instr recipeFor mr f prev)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] -> do
             newScr <- liftIO $ prev Nothing
@@ -86,7 +86,10 @@ handleEvent s@(CyanideState conn conf scr@(RecipeInputScreen nameEd garnishEd gl
 
         Vty.EvKey (Vty.KChar '\t') [] ->
             let newFocus = BF.focusNext f
-            in B.continue $ s { stateScreen = scr { recipeInputFocusRing = newFocus } }
+                newFocus' = if BF.focusGetCurrent newFocus == Just ingredientsName && length il == 0
+                                then BF.focusNext newFocus
+                                else newFocus
+            in B.continue $ s { stateScreen = scr { recipeInputFocusRing = newFocus' } }
 
         Vty.EvKey (Vty.KChar 'a') [Vty.MMeta] -> do
             newScr <- liftIO $ RecipeInputIngredient.newRecipeInputIngredientScreen conn Nothing getBack
@@ -99,7 +102,7 @@ handleEvent s@(CyanideState conn conf scr@(RecipeInputScreen nameEd garnishEd gl
 
         Vty.EvKey (Vty.KChar 'i') [Vty.MMeta] -> do
             mEditorEnv <- liftIO $ getEnv "EDITOR"
-            let editor = case (Config.editor (Config.editorSection conf),mEditorEnv) of
+            let editor = case (Config.editor (Config.editorSection (stateConfig gs)),mEditorEnv) of
                             ("",Just e) -> e
                             ("",Nothing) -> "vim"
                             (e,_) -> T.unpack e
@@ -118,7 +121,10 @@ handleEvent s@(CyanideState conn conf scr@(RecipeInputScreen nameEd garnishEd gl
                 then B.continue s
                 else let Just (i,_) = BL.listSelectedElement il
                          newList = BL.listRemove i il
-                     in B.continue $ s { stateScreen = scr { recipeInputIngredientList = newList } }
+                         newFocus = if length newList == 0 then BF.focusNext f else f
+                     in B.continue $ s { stateScreen = scr { recipeInputIngredientList = newList
+                                                           , recipeInputFocusRing = newFocus
+                                                           } }
 
         Vty.EvKey (Vty.KChar 'e') [Vty.MMeta] ->
             if BF.focusGetCurrent f /= Just ingredientsName || length il == 0
@@ -205,35 +211,28 @@ drawUI (CyanideState conn _ (RecipeInputScreen nameEd garnishEd gl il instr reci
                 , BB.borderWithLabel (B.txt "Instructions") (B.padBottom (B.Max) $ B.padRight (B.Max) (B.txtWrap $ if instr == "" then " " else instr))
                 ]
 
-          instructionsLeft =
-                B.vBox [ B.txt $ "Enter - " `T.append` enterAction
-                       , B.txt "  Tab - Change focus"
-                       , B.txt "  Esc - Cancel"
-                       ]
-          instructionsRight =
-            B.padLeft (B.Pad 2) $
-                B.vBox  $ 
-                    if BF.focusGetCurrent f == Just ingredientsName
-                        then [ B.txt "Alt-i - Edit instructions"
-                             , B.txt "Alt-a - Add ingredient"
-                             , B.txt "Alt-d - Delete ingredient"
-                             , B.txt "Alt-e - Edit ingredient"
-                             ]
-                        else [ B.txt "Alt-i - Edit instructions"
-                             , B.txt "Alt-a - Add ingredient"
-                             ]
-          instructions = B.padLeft (B.Pad 16) $ B.hBox [ instructionsLeft, instructionsRight ]
-
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txt prompt
-                            , BC.hCenter $ B.txt $ case recipeFor of
-                                                       (Just r) -> "This is a recipe for: " `T.append` (Types.ingredientName r)
-                                                       Nothing -> " "
-                            , recipeInfo
-                            , instructions
+          instructions = BC.hCenter $ B.hBox
+                            [ B.vBox [ B.txt $ "Enter - " `T.append` enterAction
+                                     , B.txt "  Tab - Change focus"
+                                     , B.txt "  Esc - Cancel"
+                                     ]
+                            , B.txt "  "
+                            , B.vBox [ B.txt "Alt-i - Edit instructions"
+                                     , B.txt "Alt-a - Add ingredient"
+                                     ]
+                            , B.txt "  "
+                            , B.vBox $ if BF.focusGetCurrent f == Just ingredientsName && length il > 0
+                                            then [ B.txt "Alt-d - Delete ingredient"
+                                                 , B.txt "Alt-e - Edit ingredient"
+                                                 ]
+                                            else [ B.txt "                         "
+                                                 ]
                             ]
+
+          ui = B.vBox [ BC.hCenter $ B.txt prompt
+                      , recipeInfo
+                      , instructions
+                      ]
 
 drawEdit = B.txt . T.unlines
 

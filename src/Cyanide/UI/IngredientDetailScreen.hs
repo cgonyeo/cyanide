@@ -48,9 +48,10 @@ newIngredientDetailScreen conn ingr prev = do
                             ++ if Types.notForRecipes ingr
                                     then []
                                     else [recipesListName]
+        f' = if length purchases == 0 then BF.focusNext f else f
         purchasesList = BL.list purchasesListName (V.fromList purchases) 1
         usedInList = BL.list recipesListName (V.fromList recipes) 1
-    return $ IngredientDetailScreen ingr purchasesList usedInList recipeForIngr f prev
+    return $ IngredientDetailScreen ingr purchasesList usedInList recipeForIngr f' prev
 
 getRecipesUsedIn :: Postgres.DBConn -> Types.Ingredient -> IO [Types.Recipe]
 getRecipesUsedIn conn ingr = do
@@ -226,19 +227,20 @@ drawUI (CyanideState conn _ (IngredientDetailScreen ing pl rl mr f prev)) = [ui]
                      ] ++ case avgCost of
                             Nothing -> []
                             Just cost -> [ addRow ingredientInfoLabelSize "Avg Cost" [B.txt $ formatMoney cost `T.append` "/oz" ] ]
-                       ++ case mr of
-                            Nothing -> []
-                            Just _ -> [ addRow ingredientInfoLabelSize "Recipe" [B.txt "Available"]]
 
-          -- TODO: alternate UI for ingredients not used in recipes
-          ui = BC.center
-            $ B.hLimit 80
-            $ B.vLimit 25 $ B.vBox $
+
+          ui = B.vBox $
             [ B.hBox
                 [ B.vBox
                     [ BB.borderWithLabel (B.txt "Ingredient Info")
-                        $ BC.hCenter
-                        $ B.padAll 1 $ ingredientInfo
+                        $ B.padAll 1
+                        $ B.vBox $ [ BC.hCenter ingredientInfo
+                               ] ++ case mr of
+                                        Nothing -> []
+                                        Just _ -> [ B.txt " ", BC.hCenter $ B.txt "This ingredient has a recipe" ]
+                                 ++ if Types.notForRecipes ing
+                                      then [ B.txt " ", BC.hCenter $ B.txt "This should not be used in cocktails" ]
+                                      else []
                     , BB.borderWithLabel (B.txt "Purchases") l1
                     ]
                 , if notForRecipes

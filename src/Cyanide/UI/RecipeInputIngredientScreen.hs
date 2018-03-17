@@ -177,17 +177,14 @@ drawUI (CyanideState conn _ (RecipeInputIngredientScreen amountEd unitEd filterE
                                , BB.border ingrRenderedLst
                                ]
 
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ B.hBox [ leftColumn
-                                     , rightColumn
-                                     ]
-                            , renderInstructions [ ("Enter","Add ingredient")
-                                                 , ("Tab","Change focus")
-                                                 , ("Esc","Cancel")
-                                                 ]
-                            ]
+          ui = B.vBox [ B.hBox [ leftColumn
+                               , rightColumn
+                               ]
+                      , renderInstructions [ ("Enter","Add ingredient")
+                                           , ("Tab","Change focus")
+                                           , ("Esc","Cancel")
+                                           ]
+                      ]
 
 drawEdit = B.txt . T.unlines
 

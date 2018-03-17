@@ -54,16 +54,13 @@ drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn _ (IngredientClassSelectionScreen l)) = [ui]
     where box = BB.borderWithLabel (B.txt "Ingredient Classes") $
               BL.renderList listDrawElement True l
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter box
-                            , renderInstructions [ ("n","New ingredient class")
-                                                 , ("e","Edit ingredient class")
-                                                 , ("d","Delete ingredient class")
-                                                 , ("Esc","Previous screen")
-                                                 ]
-                            ]
+          ui = B.vBox [ BC.hCenter box
+                      , renderInstructions [ ("n","New ingredient class")
+                                           , ("e","Edit ingredient class")
+                                           , ("d","Delete ingredient class")
+                                           , ("Esc","Previous screen")
+                                           ]
+                      ]
 
 listDrawElement :: Bool -> Types.IngredientClass -> B.Widget Name
 listDrawElement _ (Types.IngredientClass _ n) = BC.hCenter $ B.txt n

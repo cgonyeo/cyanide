@@ -43,12 +43,9 @@ handleEvent s _ = B.continue s
 drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn _ (IngredientClassDeletionScreen l)) = [ui]
     where Just (_,(Types.IngredientClass _ n)) = BL.listSelectedElement l
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txt $ "Are you sure you want to delete the following ingredient class?"
-                            , BC.hCenter $ B.padAll 1 $ B.txt n
-                            , renderInstructions [ ("y","Yes")
-                                                 , ("n","No")
-                                                 ]
-                            ]
+          ui = B.vBox [ BC.hCenter $ B.txt $ "Are you sure you want to delete the following ingredient class?"
+                      , BC.hCenter $ B.padAll 1 $ B.txt n
+                      , renderInstructions [ ("y","Yes")
+                                           , ("n","No")
+                                           ]
+                      ]

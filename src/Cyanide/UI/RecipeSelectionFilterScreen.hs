@@ -68,20 +68,17 @@ drawUI (CyanideState conn _ (RecipeSelectionFilterScreen rlf@(RecipeListFilter a
           limitedToAvail = if avail then "Only showing recipes that can be made with available ingredients"
                                     else "Showing all recipes"
 
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txt "Recipe Filter"
-                            , B.padAll 1 $ BC.hCenter $ B.txt limitedToAvail
-                            , B.hBox [ BB.borderWithLabel (B.txt "Ingredient Classes") icList
-                                     , BB.borderWithLabel (B.txt "Glasses") gList
-                                     ]
-                            , renderInstructions [ ("Enter","Apply filter")
-                                                 , ("Tab","Change focus")
-                                                 , ("a","Toggle limiting to available ingredients")
-                                                 , ("Esc","Cancel")
-                                                 ]
-                            ]
+          ui = B.vBox [ BC.hCenter $ B.txt "Recipe Filter"
+                      , B.padAll 1 $ BC.hCenter $ B.txt limitedToAvail
+                      , B.hBox [ BB.borderWithLabel (B.txt "Ingredient Classes") icList
+                               , BB.borderWithLabel (B.txt "Glasses") gList
+                               ]
+                      , renderInstructions [ ("Enter","Apply filter")
+                                           , ("Tab","Change focus")
+                                           , ("a","Toggle limiting to available ingredients")
+                                           , ("Esc","Cancel")
+                                           ]
+                      ]
 
 drawListIngredientClass :: Bool -> Maybe Types.IngredientClass -> B.Widget Name
 drawListIngredientClass False Nothing = BC.hCenter $ B.txt " "

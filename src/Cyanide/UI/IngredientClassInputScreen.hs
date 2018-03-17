@@ -62,14 +62,11 @@ drawUI (CyanideState conn _ (IngredientClassInputScreen e mic l)) = [ui]
                             Just _ -> "Modify"
                             Nothing -> "Create"
 
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txt prompt
-                            , BC.hCenter $ B.hLimit 24 $ B.padAll 1 $ BB.border $ BE.renderEditor drawEdit True e
-                            , renderInstructions [ ("Enter",enterAction)
-                                                 , ("Esc","Cancel")
-                                                 ]
-                            ]
+          ui = B.vBox [ BC.hCenter $ B.txt prompt
+                      , BC.hCenter $ B.hLimit 24 $ B.padAll 1 $ BB.border $ BE.renderEditor drawEdit True e
+                      , renderInstructions [ ("Enter",enterAction)
+                                           , ("Esc","Cancel")
+                                           ]
+                      ]
 
 drawEdit = B.txt . T.unlines

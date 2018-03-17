@@ -87,10 +87,7 @@ handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn _ (PurchaseCreationScreen ing le ce ae ue fe _)) =
-    [ BC.center
-        $ B.hLimit 80
-        $ B.vLimit 25
-        $ B.vBox
+    [ B.vBox
             [ BC.hCenter $ B.txt $ "Where did you buy " `T.append` Types.ingredientName ing `T.append` " and how much was it?"
             , B.txt " "
             , BC.hCenter $ B.txt "Location:"

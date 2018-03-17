@@ -40,13 +40,13 @@ newIngredientSelectionScreen conn = do
     let ingList = BL.list ingredientsName (V.fromList ingredients) 1
         se = BE.editorText searchName (Just 1) ""
         f = BF.focusRing [ ingredientsName, searchName ]
-    return $ IngredientSelectionScreen ingList ingredients se f
+    return $ IngredientSelectionScreen ingList ingredients False se f
 
 attrMap :: [(B.AttrName, Vty.Attr)]
 attrMap = []
 
 handleEvent :: CyanideState -> B.BrickEvent Name () -> B.EventM Name (B.Next CyanideState)
-handleEvent s@(CyanideState conn _ scr@(IngredientSelectionScreen l orig se f)) (B.VtyEvent e) =
+handleEvent s@(CyanideState conn _ scr@(IngredientSelectionScreen l orig sippingFilter se f)) (B.VtyEvent e) =
     case e of
         Vty.EvKey (Vty.KEsc) [] ->
             B.continue $ s { stateScreen = MainSelectionScreen }
@@ -104,6 +104,14 @@ handleEvent s@(CyanideState conn _ scr@(IngredientSelectionScreen l orig se f)) 
                            , ingredientListFocusRing = newFocus
                            }
 
+        Vty.EvKey (Vty.KChar 'f') [Vty.MMeta] ->
+            let sippingFilter' = not sippingFilter
+                newList = filter (\i -> (not sippingFilter') || Types.notForRecipes i) orig
+                newList' = BL.list ingredientsName (V.fromList newList) 1
+            in B.continue $ s { stateScreen = scr { ingredientListFilterNotForRecipes = sippingFilter'
+                                                  , ingredientSelectionList = newList'
+                                                  } }
+
         ev -> if BF.focusGetCurrent (f) == Just ingredientsName then do
                     newList <- BL.handleListEventVi BL.handleListEvent ev l
                     B.continue $ s { stateScreen = scr { ingredientSelectionList = newList } }
@@ -124,19 +132,19 @@ handleEvent s@(CyanideState conn _ scr@(IngredientSelectionScreen l orig se f)) 
 handleEvent s _ = B.continue s
 
 drawUI :: CyanideState -> [B.Widget Name]
-drawUI (CyanideState conn _ (IngredientSelectionScreen l _ se f)) = [ui]
+drawUI (CyanideState conn _ (IngredientSelectionScreen l _ sippingFilter se f)) = [ui]
     where editor = BF.withFocusRing f (BE.renderEditor drawEdit) se
           ingredientList = BF.withFocusRing f (BL.renderList listDrawElement) l
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ BB.borderWithLabel (B.txt "Search") editor
-                            , BB.borderWithLabel (B.txt "Ingredients") ingredientList
-                            , renderInstructions [ ("Enter","View details")
-                                                 , ("Alt-n","New ingredient")
-                                                 , ("Esc","Previous screen")
-                                                 ]
-                            ]
+          ui = B.vBox [ BB.borderWithLabel (B.txt "Search") editor
+                      , BB.borderWithLabel (B.txt "Ingredients") ingredientList
+                      , renderInstructions [ ("Enter","View details")
+                                           , ("Alt-n","New ingredient")
+                                           , if sippingFilter
+                                                then ("Alt-f","Show ingredients available to cocktails")
+                                                else ("Alt-f","Hide ingredients available to cocktails")
+                                           , ("Esc","Previous screen")
+                                           ]
+                      ]
 
 listDrawElement :: Bool -> Types.Ingredient -> B.Widget Name
 listDrawElement sel (Types.Ingredient _ n mic a _) =

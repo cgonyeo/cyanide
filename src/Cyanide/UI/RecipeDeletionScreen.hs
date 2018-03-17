@@ -47,12 +47,9 @@ drawUI (CyanideState conn _ (RecipeDeletionScreen r _)) = [ui]
     where handleRecipeName (Right i) = "the recipe for " `T.append` Types.ingredientName i
           handleRecipeName (Left n) = n
 
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 
-               $ B.vBox [ BC.hCenter $ B.txt "Are you sure you want to delete the following recipe?"
-                        , BC.hCenter $ B.padAll 1 $ B.txt $ handleRecipeName (Types.recipeName r)
-                        , renderInstructions [ ("y","Yes")
-                                             , ("n","No")
-                                             ]
-                        ]
+          ui = B.vBox [ BC.hCenter $ B.txt "Are you sure you want to delete the following recipe?"
+                      , BC.hCenter $ B.padAll 1 $ B.txt $ handleRecipeName (Types.recipeName r)
+                      , renderInstructions [ ("y","Yes")
+                                           , ("n","No")
+                                           ]
+                      ]

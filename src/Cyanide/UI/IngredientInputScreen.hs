@@ -94,24 +94,21 @@ drawUI (CyanideState conn _ (IngredientInputScreen e cl f s mi _)) = [ui]
                     Just _ -> "Modify"
                     Nothing -> "Create"
 
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter $ B.txt prompt
-                            , BC.hCenter $ B.hLimit 24 $ B.padAll 1
-                                $ B.vBox [ BC.hCenter $ B.txt "Name"
-                                         , BB.border $ edt
-                                         ]
-                            , BC.hCenter $ B.padBottom (B.Pad 1) $ recipeState
-                            , B.vBox [ BC.hCenter $ B.txt "Class"
-                                     , BB.border $ clst
-                                     ]
-                            , renderInstructions [ ("Enter",enterAction)
-                                                 , ("Alt-c","Toggle cocktail availability")
-                                                 , ("Tab","Change focus")
-                                                 , ("Esc","Cancel")
-                                                 ]
-                            ]
+          ui = B.vBox [ BC.hCenter $ B.txt prompt
+                      , BC.hCenter $ B.hLimit 24 $ B.padAll 1
+                          $ B.vBox [ BC.hCenter $ B.txt "Name"
+                                   , BB.border $ edt
+                                   ]
+                      , BC.hCenter $ B.padBottom (B.Pad 1) $ recipeState
+                      , B.vBox [ BC.hCenter $ B.txt "Class"
+                               , BB.border $ clst
+                               ]
+                      , renderInstructions [ ("Enter",enterAction)
+                                           , ("Alt-c","Toggle cocktail availability")
+                                           , ("Tab","Change focus")
+                                           , ("Esc","Cancel")
+                                           ]
+                      ]
 
 drawEdit = B.txt . T.unlines
 

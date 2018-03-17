@@ -54,16 +54,13 @@ drawUI :: CyanideState -> [B.Widget Name]
 drawUI (CyanideState conn _ (GlassSelectionScreen l)) = [ui]
     where box = BB.borderWithLabel (B.txt "Glasses") $
               BL.renderList listDrawElement True l
-          ui = BC.center
-               $ B.hLimit 80
-               $ B.vLimit 25 $ B.vBox
-                            [ BC.hCenter box
-                            , renderInstructions [ ("n","New glass")
-                                                 , ("e","Edit glass")
-                                                 , ("d","Delete glass")
-                                                 , ("Esc","Previous screen")
-                                                 ]
-                            ]
+          ui = B.vBox [ BC.hCenter box
+                      , renderInstructions [ ("n","New glass")
+                                           , ("e","Edit glass")
+                                           , ("d","Delete glass")
+                                           , ("Esc","Previous screen")
+                                           ]
+                      ]
 
 listDrawElement :: Bool -> Types.Glass -> B.Widget Name
 listDrawElement sel (Types.Glass _ n) = BC.hCenter $ B.str $ T.unpack n

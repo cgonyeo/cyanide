@@ -105,3 +105,18 @@ setFocusTo f n =
                     | Just n' == firstFocus -> f
                     | n' == n               -> f
                     | otherwise             -> setFocusTo' firstFocus (BF.focusNext f) n
+
+globalWidth :: Int
+globalWidth = 80
+
+globalHeight :: Int
+globalHeight = 25
+
+addGlobalUI :: CyanideState -> [B.Widget Name] -> [B.Widget Name]
+addGlobalUI s uis = map drawGlobalUI uis
+    where drawGlobalUI ui = BC.center
+                                $ B.hLimit globalWidth
+                                $ B.vLimit globalHeight
+                                $ B.vBox [ getBreadcrumbsForScreen (stateScreen s)
+                                         , BC.center $ ui
+                                         ]

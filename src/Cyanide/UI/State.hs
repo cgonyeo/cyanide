@@ -3,6 +3,7 @@
 module Cyanide.UI.State where
 
 import qualified Data.Text as T
+import qualified Brick as B
 import qualified Brick.Widgets.List as BL
 import qualified Brick.Widgets.Edit as BE
 import qualified Brick.Focus as BF
@@ -14,12 +15,23 @@ import qualified Cyanide.Data.Types as Types
 -- | Named resources
 type Name = T.Text
 
+-- The data type that holds all app-wide state. This is handed to a given
+-- screen's handleEvent function for modification based on an event, and to a
+-- given screen's drawUI function for conversion into a brick (the library)
+-- widget.
 data CyanideState = CyanideState
                         { stateDBConn :: Postgres.DBConn
-                        , stateConfig :: Config.Config
+                        , stateState  :: GlobalState
                         , stateScreen :: CyanideScreen
                         }
 
+-- GlobalState holds top-level state not specific to any screen
+data GlobalState = GlobalState
+                    { stateConfig :: Config.Config
+                    }
+
+-- CyanideScreen denotes which screen is active, and holds whatever state is
+-- needed for that screen.
 data CyanideScreen
     = MainSelectionScreen
     | ErrorScreen
@@ -38,10 +50,11 @@ data CyanideScreen
         , glassCreationPreviousScreen :: BL.List Name Types.Glass
         }
     | IngredientSelectionScreen
-        { ingredientSelectionList :: BL.List Name Types.Ingredient
-        , ingredientListOrig      :: [Types.Ingredient]
-        , ingredientListSearch    :: BE.Editor T.Text Name
-        , ingredientListFocusRing :: BF.FocusRing Name
+        { ingredientSelectionList           :: BL.List Name Types.Ingredient
+        , ingredientListOrig                :: [Types.Ingredient]
+        , ingredientListFilterNotForRecipes :: Bool
+        , ingredientListSearch              :: BE.Editor T.Text Name
+        , ingredientListFocusRing           :: BF.FocusRing Name
         }
     | IngredientInputScreen
         { ingredientInputName           :: BE.Editor T.Text Name
@@ -149,3 +162,25 @@ data RecipeListFilter = RecipeListFilter
         , limitToIngredientClass   :: BL.List Name (Maybe Types.IngredientClass)
         , limitToGlass             :: BL.List Name (Maybe Types.Glass)
         }
+
+getBreadcrumbsForScreen :: CyanideScreen -> B.Widget Name
+getBreadcrumbsForScreen MainSelectionScreen                         = B.emptyWidget
+getBreadcrumbsForScreen (ErrorScreen _ _)                           = B.emptyWidget
+getBreadcrumbsForScreen (GlassSelectionScreen _)                    = B.txt "Home > Glasses"
+getBreadcrumbsForScreen (GlassDeletionScreen _)                     = B.txt "Home > Glasses > Deletion"
+getBreadcrumbsForScreen (GlassInputScreen _ _ _)                    = B.emptyWidget
+getBreadcrumbsForScreen (RecipeSelectionScreen _ _ _ _ _ _ _ _)     = B.txt "Home > Recipes"
+getBreadcrumbsForScreen (RecipeSelectionFilterScreen _ _ _)         = B.txt "Home > Recipes > Filter"
+getBreadcrumbsForScreen (RecipeDetailScreen _ _ _ _)                = B.emptyWidget
+getBreadcrumbsForScreen (RecipeInputScreen _ _ _ _ _ _ _ _ _)       = B.emptyWidget
+getBreadcrumbsForScreen (RecipeInputIngredientScreen _ _ _ _ _ _ _) = B.emptyWidget
+getBreadcrumbsForScreen (RecipeDeletionScreen _ _)                  = B.emptyWidget
+getBreadcrumbsForScreen (IngredientSelectionScreen _ _ _ _ _)         = B.txt "Home > Ingredients"
+getBreadcrumbsForScreen (IngredientInputScreen _ _ _ _ _ _)         = B.emptyWidget
+getBreadcrumbsForScreen (IngredientDetailScreen _ _ _ _ _ _)        = B.txt "Home > Ingredients > Detail"
+getBreadcrumbsForScreen (IngredientDeletionScreen _ _ _ _)          = B.txt "Home > Ingredients > Delete"
+getBreadcrumbsForScreen (PurchaseDeletionScreen _ _ _)              = B.txt "Home > Ingredients > Detail > Delete Purchase"
+getBreadcrumbsForScreen (PurchaseCreationScreen _ _ _ _ _ _ _)      = B.txt "Home > Ingredients > Detail > Add Purchase"
+getBreadcrumbsForScreen (IngredientClassSelectionScreen _)          = B.txt "Home > Ingredient Classes"
+getBreadcrumbsForScreen (IngredientClassDeletionScreen _)           = B.txt "Home > Ingredient Classes > Delete"
+getBreadcrumbsForScreen (IngredientClassInputScreen _ _ _)          = B.emptyWidget
